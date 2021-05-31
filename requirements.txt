@@ -4,6 +4,10 @@ torchvision==0.9.1
 pytorch-lightning>=1.3.2
 torchmetrics>=0.3.2
 
+# --------- pytorch ecosystem --------- #
+einops>=0.3.0
+timm>=0.4.9
+
 # --------- hydra --------- #
 hydra-core==1.1.0.rc1
 hydra-colorlog==1.1.0.dev1
