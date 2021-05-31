@@ -36,4 +36,4 @@ debug: False
 print_config: True
 
 # disable python warnings if they annoy you
-ignore_warnings: True
+ignore_warnings: False
