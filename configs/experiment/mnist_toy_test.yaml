@@ -9,7 +9,6 @@ defaults:
 seed: 12345
 
 datamodule:
-  effective_batch_size: 128
   batch_size: 128
   num_workers: 4
   pin_memory: True

@@ -56,6 +56,16 @@ def extras(config: DictConfig) -> None:
         log.info("Disabling python warnings! <config.ignore_warnings=True>")
         warnings.filterwarnings("ignore")
 
+    # set effective batch size
+    if config.trainer.get("tpu_cors"):
+        raise NotImplementedError
+    elif config.trainer.get("gpus"):
+        config.datamodule.effective_batch_size = config.datamodule.batch_size * config.trainer.gpus
+    else:
+        config.datamodule.effective_batch_size = config.datamodule.batch_size
+    if config.trainer.get("accumulate_grad_batches"):
+        config.datamodule.effective_batch_size *= config.trainer.accumulate_grad_batches
+
     # set <config.trainer.fast_dev_run=True> if <config.debug=True>
     if config.get("debug"):
         log.info("Running in debug mode! <config.debug=True>")

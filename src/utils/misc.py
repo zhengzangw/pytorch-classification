@@ -1,4 +1,5 @@
-import einops
+import os
+
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -14,9 +15,8 @@ def set_bn_momentum(model, momentum=0.1):
 
 def create_plugins(cfgs):
     plugins = []
-    if cfgs.get("cluster"):
-        if cfgs.get("cluster") == "slurm":
-            plugins.append(pl.plugins.environments.SLURMEnvironment())
+    if "SLURM_JOB_ID" in os.environ:
+        plugins.append(pl.plugins.environments.SLURMEnvironment())
 
     if cfgs.trainer.get("accelerator", None) == "ddp":
         plugins.append(

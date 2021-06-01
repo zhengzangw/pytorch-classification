@@ -25,7 +25,9 @@ class LitClassification(LightningModule):
 
         # model
         log.info(f"Instantiating module <{config.module._target_}>")
-        self.model = hydra.utils.instantiate(config.module)
+        self.model = hydra.utils.instantiate(
+            config.module, num_classes=config.datamodule.num_classes
+        )
 
         # load from checkpoint
         if config.get("load_from_checkpoint"):
