@@ -23,3 +23,5 @@ export CONDA_PYTHON=/global/homes/z/zangwei/.conda/envs/$CONDA_NAME
 conda activate $CONDA_PYTHON
 
 srun python run.py trainer.gpus=4 $@
+
+# +trainer.weights_save_path=/absolute/path

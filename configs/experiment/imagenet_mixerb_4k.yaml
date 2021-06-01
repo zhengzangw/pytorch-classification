@@ -16,14 +16,14 @@ optimizer:
 
 scheduler:
   warmup:
-    times: 40000
+    times: 10000
 
 datamodule:
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
   pin_memory: True
 
 trainer:
-  gpus: 2
+  gpus: 4
   max_epochs: 300
   accumulate_grad_batches: 8
