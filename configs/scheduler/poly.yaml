@@ -1,0 +1,6 @@
+name: poly
+policy: iteration
+warmup:
+  times: 100
+
+power: 1.0

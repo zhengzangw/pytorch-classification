@@ -12,6 +12,7 @@ from pytorch_lightning import (
 from pytorch_lightning.loggers import LightningLoggerBase
 
 from src.utils import utils
+from src.utils.misc import create_plugins
 
 log = utils.get_logger(__name__)
 
@@ -37,7 +38,7 @@ def train(config: DictConfig) -> Optional[float]:
 
     # Init Lightning model
     log.info(f"Instantiating model <{config.model._target_}>")
-    model: LightningModule = hydra.utils.instantiate(config.model)
+    model: LightningModule = hydra.utils.instantiate(config.model, cfg=config, _recursive_=False)
 
     # Init Lightning callbacks
     callbacks: List[Callback] = []
@@ -58,7 +59,11 @@ def train(config: DictConfig) -> Optional[float]:
     # Init Lightning trainer
     log.info(f"Instantiating trainer <{config.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(
-        config.trainer, callbacks=callbacks, logger=logger, _convert_="partial"
+        config.trainer,
+        callbacks=callbacks,
+        logger=logger,
+        plugins=create_plugins(config),
+        _convert_="partial",
     )
 
     # Send some parameters from config to all lightning loggers
@@ -73,13 +78,14 @@ def train(config: DictConfig) -> Optional[float]:
     )
 
     # Train the model
-    log.info("Starting training!")
-    trainer.fit(model=model, datamodule=datamodule)
+    if not config.get("test"):
+        log.info("Starting training!")
+        trainer.fit(model=model, datamodule=datamodule)
 
     # Evaluate model on test set after training
     if not config.trainer.get("fast_dev_run"):
         log.info("Starting testing!")
-        trainer.test()
+        trainer.test(model=model, datamodule=datamodule)
 
     # Make sure everything closed properly
     log.info("Finalizing!")

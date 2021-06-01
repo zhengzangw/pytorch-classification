@@ -2,20 +2,30 @@
 
 # specify here default training configuration
 defaults:
-  - trainer: minimal.yaml
-  - model: mnist_model.yaml
-  - datamodule: mnist_datamodule.yaml
-  - callbacks: default.yaml # set this to null if you don't want to use callbacks
-  - logger: null # set logger here or use command line (e.g. `python run.py logger=wandb`)
+  - trainer: cpu.yaml
+  - model: default.yaml
+  - module: toy.yaml
+  - loss: crossentropy.yaml
+  - optimizer: adam.yaml
+  - scheduler: none.yaml
+  - datamodule: mnist.yaml
+  - callbacks: default.yaml
+  - logger: null
 
   - experiment: null
   - hparams_search: null
 
   - hydra: default.yaml
-
-  # enable color logging
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
+
+# plugin
+cluster: null
+find_unused_parameters: False
+
+# test
+test: False
+load_from_checkpoint: null
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the current log directory,
@@ -36,4 +46,4 @@ debug: False
 print_config: True
 
 # disable python warnings if they annoy you
-ignore_warnings: False
+ignore_warnings: True
