@@ -6,7 +6,7 @@
 
 #SBATCH --qos=regular
 #SBATCH --constraint=gpu
-#SBATCH --time=00:10:00
+#SBATCH --time=00:05:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --gpus-per-node=2

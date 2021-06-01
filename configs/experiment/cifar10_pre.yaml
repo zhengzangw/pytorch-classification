@@ -1,5 +1,7 @@
 # @package _global_
 
+# acc = 95.11% reported in https://github.com/C3-ASV-Team/pytorch-cifar
+
 defaults:
   - override /datamodule: cifar10
   - override /trainer: ddp

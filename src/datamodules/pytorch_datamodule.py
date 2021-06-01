@@ -150,7 +150,7 @@ class IMAGENETDataModule(PytorchDataModule):
 
         self.data_dir = os.path.join(self.data_dir, "imagenet")
         self.data_dir_train = os.path.join(self.data_dir, "train")
-        self.data_dir_test = os.path.join(self.data_dir, "test")
+        self.data_dir_test = os.path.join(self.data_dir, "val")
         self.prepare_transform()
 
     def prepare_transform(self):
