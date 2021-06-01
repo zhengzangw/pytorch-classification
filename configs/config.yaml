@@ -18,6 +18,7 @@ defaults:
   - hydra: default.yaml
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
+  # - override hydra/launcher: submitit_slurm
 
 # plugin
 cluster: null

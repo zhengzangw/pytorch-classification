@@ -7,7 +7,8 @@ torchmetrics>=0.3.2
 # --------- pytorch ecosystem --------- #
 einops>=0.3.0
 timm>=0.4.9
-# pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda100
+--extra-index-url https://developer.download.nvidia.com/compute/redist
+nvidia-dali-cuda100
 
 # --------- hydra --------- #
 hydra-core==1.1.0.rc1
@@ -15,13 +16,13 @@ hydra-colorlog==1.1.0.dev1
 hydra-optuna-sweeper==1.1.0.dev2
 # hydra-ax-sweeper==1.1.0
 # hydra-ray-launcher==0.1.2
-# hydra-submitit-launcher==1.1.0
+hydra-submitit-launcher==1.1.0
 
 # --------- loggers --------- #
-wandb>=0.10.30
+# wandb>=0.10.30
 # neptune-client
 # mlflow
-# comet-ml
+comet-ml
 # torch_tb_profiler
 
 # --------- linters --------- #
