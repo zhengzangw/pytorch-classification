@@ -63,12 +63,8 @@ def extras(config: DictConfig) -> None:
         config.datamodule.effective_batch_size = config.datamodule.batch_size * config.trainer.gpus
     else:
         config.datamodule.effective_batch_size = config.datamodule.batch_size
-    if (
-        config.trainer.get("accumulate_grad_batches")
-        and config.scheduler.get("policy") == "iteration"
-        and isinstance(config.scheduler.warmup.times, int)
-    ):
-        config.scheduler.warmup.times *= config.trainer.accumulate_grad_batches
+    if config.trainer.get("accumulate_grad_batches"):
+        config.datamodule.effective_batch_size *= config.trainer.accumulate_grad_batches
 
     # set <config.trainer.fast_dev_run=True> if <config.debug=True>
     if config.get("debug"):

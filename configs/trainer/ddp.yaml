@@ -4,3 +4,4 @@ gpus: 4
 accelerator: ddp
 
 precision: 16
+weights_summary: null

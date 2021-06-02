@@ -106,6 +106,7 @@ class IMAGENET_DALI_DataModule(LightningDataModule):
 
     @property
     def train_len(self):
+        # 1281167
         assert self.loader_train is not None
         return self.loader_train.size
 

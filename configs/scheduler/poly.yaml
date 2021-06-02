@@ -1,6 +1,5 @@
 name: poly
 policy: iteration
-warmup:
-  times: 100
+warmup: null
 
 power: 1.0

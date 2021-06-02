@@ -5,6 +5,8 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchinfo
+from pytorch_lightning.utilities import rank_zero_only
 
 
 # https://github.com/VainF/DeepLabV3Plus-Pytorch/blob/0c67dce524b2eb94dc3587ff2832e28f11440cae/utils/utils.py#L26
@@ -36,3 +38,8 @@ def mixup_data(x, y, alpha=1.0):
     mixed_x = lam * x + (1 - lam) * x[index, :]
     y_a, y_b = y, y[index]
     return mixed_x, y_a, y_b, lam
+
+
+@rank_zero_only
+def summary(model, input_size, batch_size_summary=16):
+    torchinfo.summary(model, input_size=(batch_size_summary, *input_size))

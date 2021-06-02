@@ -1,1 +1,1 @@
-_target_: src.models.modules.toy.toy_conv
+_target_: src.modules.toy.toy_conv

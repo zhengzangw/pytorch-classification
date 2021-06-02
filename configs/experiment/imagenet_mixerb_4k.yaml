@@ -2,17 +2,18 @@
 
 defaults:
   - imagenet_mixerb
+  - override /scheduler: none
   - override /logger: comet
 
-scheduler:
-  warmup:
-    times: 10000
+# scheduler:
+#   warmup:
+#     times: 10000
+
+datamodule:
+  batch_size: 128
 
 trainer:
   gpus: 4
   accumulate_grad_batches: 8
   gradient_clip_val: 1.0
   weights_save_path: /global/cfs/cdirs/m3691/zangwei/pytorch-classification/job_4
-
-datamodule:
-  batch_size: 128

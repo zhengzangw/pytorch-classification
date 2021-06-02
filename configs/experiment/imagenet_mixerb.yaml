@@ -4,7 +4,7 @@ defaults:
   - override /datamodule: imagenet
   - override /trainer: ddp
   - override /module: mixer_b_16
-  - override /optimizer: adam
+  - override /optimizer: adamw
   - override /scheduler: poly
   # - override /logger: comet
 
@@ -14,12 +14,8 @@ model:
   mixup: 0.5
 
 optimizer:
-  lr: 0.001
-  weight_decay: 5.e-4 # smaller than essay
-
-scheduler:
-  warmup:
-    times: 10000 # for 4k
+  lr: 1.e-3
+  weight_decay: 1.e-4 # from yuxuan
 
 datamodule:
   randaug_m: 15
@@ -30,4 +26,3 @@ datamodule:
 trainer:
   gpus: 1
   max_epochs: 300
-  # accumulate_grad_batches: 8

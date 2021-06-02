@@ -7,7 +7,7 @@ defaults:
   - override /trainer: ddp
   - override /module: preact18
   - override /optimizer: sgd
-  - override /scheduler: step
+  - override /scheduler: poly
   - override /logger: comet
 
 seed: 12345
@@ -16,7 +16,8 @@ optimizer:
   lr: 0.1
 
 scheduler:
-  milestones: [60, 100]
+  warmup:
+    times: 100
 
 datamodule:
   batch_size: 128

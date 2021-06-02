@@ -1,1 +1,1 @@
-_target_: src.models.modules.preact_resnet.PreActResNet18
+_target_: src.modules.preact_resnet.PreActResNet18
