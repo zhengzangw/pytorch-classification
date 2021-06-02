@@ -1,4 +1,4 @@
-_target_: src.models.optimizer.lars.LARS
+_target_: src.optimizer.lars.LARS
 lr: 0.001
 momentum: 0.9
 weight_decay: 0.0001

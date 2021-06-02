@@ -6,7 +6,7 @@ defaults:
   - override /module: mixer_b_16
   - override /optimizer: adam
   - override /scheduler: poly
-  - override /logger: comet
+  # - override /logger: comet
 
 seed: 12345
 
@@ -24,6 +24,6 @@ datamodule:
   pin_memory: True
 
 trainer:
-  gpus: 4
+  gpus: 2
   max_epochs: 300
   accumulate_grad_batches: 8

@@ -6,8 +6,8 @@ import torchmetrics
 from omegaconf import DictConfig
 from pytorch_lightning import LightningModule
 
+from ..optimizer.scheduler import create_scheduler
 from ..utils import utils
-from .optimizer.scheduler import create_scheduler
 
 log = utils.get_logger(__name__)
 
