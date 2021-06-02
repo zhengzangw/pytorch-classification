@@ -1,0 +1,4 @@
+name: cosine
+policy: iteration
+warmup:
+  times: 100

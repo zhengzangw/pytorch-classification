@@ -1,7 +1,5 @@
 _target_: pytorch_lightning.Trainer
 
-gpus: 4
+gpus: 1
 accelerator: ddp
-
-precision: 16
-weights_summary: null
+max_epochs: 0

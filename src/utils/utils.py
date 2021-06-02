@@ -19,7 +19,15 @@ def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
 
     # this ensures all logging levels get marked with the rank zero decorator
     # otherwise logs would get multiplied for each GPU process in multi-GPU setup
-    for level in ("debug", "info", "warning", "error", "exception", "fatal", "critical"):
+    for level in (
+        "debug",
+        "info",
+        "warning",
+        "error",
+        "exception",
+        "fatal",
+        "critical",
+    ):
         setattr(logger, level, rank_zero_only(getattr(logger, level)))
 
     return logger
@@ -48,6 +56,16 @@ def extras(config: DictConfig) -> None:
         log.info("Disabling python warnings! <config.ignore_warnings=True>")
         warnings.filterwarnings("ignore")
 
+    # set effective batch size
+    if config.trainer.get("tpu_cors"):
+        raise NotImplementedError
+    elif config.trainer.get("gpus"):
+        config.datamodule.effective_batch_size = config.datamodule.batch_size * config.trainer.gpus
+    else:
+        config.datamodule.effective_batch_size = config.datamodule.batch_size
+    if config.trainer.get("accumulate_grad_batches"):
+        config.datamodule.effective_batch_size *= config.trainer.accumulate_grad_batches
+
     # set <config.trainer.fast_dev_run=True> if <config.debug=True>
     if config.get("debug"):
         log.info("Running in debug mode! <config.debug=True>")
@@ -64,15 +82,6 @@ def extras(config: DictConfig) -> None:
         if config.datamodule.get("num_workers"):
             config.datamodule.num_workers = 0
 
-    # force multi-gpu friendly configuration if <config.trainer.accelerator=ddp>
-    accelerator = config.trainer.get("accelerator")
-    if accelerator in ["ddp", "ddp_spawn", "dp", "ddp2"]:
-        log.info(f"Forcing ddp friendly configuration! <config.trainer.accelerator={accelerator}>")
-        if config.datamodule.get("num_workers"):
-            config.datamodule.num_workers = 0
-        if config.datamodule.get("pin_memory"):
-            config.datamodule.pin_memory = False
-
     # disable adding new keys to config
     OmegaConf.set_struct(config, True)
 
@@ -81,12 +90,16 @@ def extras(config: DictConfig) -> None:
 def print_config(
     config: DictConfig,
     fields: Sequence[str] = (
+        "seed",
         "trainer",
         "model",
+        "module",
+        "loss",
+        "optimizer",
+        "scheduler",
         "datamodule",
         "callbacks",
         "logger",
-        "seed",
     ),
     resolve: bool = True,
 ) -> None:
@@ -140,6 +153,10 @@ def log_hyperparameters(
     hparams["trainer"] = config["trainer"]
     hparams["model"] = config["model"]
     hparams["datamodule"] = config["datamodule"]
+    hparams["module"] = config["module"]
+    hparams["loss"] = config["loss"]
+    hparams["optimizer"] = config["optimizer"]
+    hparams["scheduler"] = config["scheduler"]
     if "callbacks" in config:
         hparams["callbacks"] = config["callbacks"]
 

@@ -1,4 +1,4 @@
-name: myenv
+name: pycls
 
 channels:
   - pytorch

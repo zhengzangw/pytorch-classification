@@ -1,0 +1,19 @@
+#!/bin/sh
+
+#PBS -l select=1:ncpus=20:ngpus=4
+#PBS -l walltime=23:59:59
+#PBS -q dgx
+#PBS -P 11002070
+#PBS -N default
+#PBS -j oe
+#PBS -m abe
+#PBS -M zhengzangw@gmail.com
+
+export WORK_DIR=/home/project/11002070/zangwei/classification
+
+. "/home/users/nus/e0575577/anaconda3/etc/profile.d/conda.sh"
+conda activate zangwei
+
+cd $WORK_DIR || exit $?
+
+python run.py trainer.gpus=4 experiment=imagenet_mixerb_4k

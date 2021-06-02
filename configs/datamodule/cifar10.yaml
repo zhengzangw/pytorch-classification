@@ -1,0 +1,13 @@
+_target_: src.datamodules.pytorch_datamodule.CIFAR10DataModule
+
+# Dataset
+
+num_classes: 10
+data_dir: ${data_dir} # data_dir is specified in config.yaml
+
+# Dataloader
+
+batch_size: 64
+effective_batch_size: ${batch_size}
+num_workers: 0
+pin_memory: False

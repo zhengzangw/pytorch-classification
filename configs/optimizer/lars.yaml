@@ -1,0 +1,6 @@
+_target_: src.optimizer.lars.LARS
+lr: 0.001
+momentum: 0.9
+weight_decay: 0.0001
+bn_bias_separately: True
+epsilon: 1.e-5

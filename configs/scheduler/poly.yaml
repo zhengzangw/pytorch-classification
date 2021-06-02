@@ -1,0 +1,5 @@
+name: poly
+policy: iteration
+warmup: null
+
+power: 1.0

@@ -1,0 +1,30 @@
+# @package _global_
+
+# acc = 95.11% reported in https://github.com/C3-ASV-Team/pytorch-cifar
+
+defaults:
+  - override /datamodule: cifar10
+  - override /trainer: ddp
+  - override /module: preact18
+  - override /optimizer: sgd
+  - override /scheduler: poly
+  - override /logger: comet
+
+seed: 12345
+
+optimizer:
+  lr: 0.1
+
+scheduler:
+  warmup:
+    times: 100
+
+datamodule:
+  batch_size: 128
+  num_workers: 4
+  pin_memory: True
+
+trainer:
+  gpus: 2
+  max_epochs: 150
+  accumulate_grad_batches: 2
