@@ -8,6 +8,7 @@ from pytorch_lightning import LightningModule
 
 from ..optimizer.scheduler import create_scheduler
 from ..utils import utils
+from ..utils.misc import mixup_data
 
 log = utils.get_logger(__name__)
 
@@ -17,8 +18,9 @@ class LitClassification(LightningModule):
     LightningModule for classification.
     """
 
-    def __init__(self, cfg: Optional[DictConfig] = None):
+    def __init__(self, cfg: Optional[DictConfig] = None, mixup: Optional[float] = None):
         super().__init__()
+
         self.save_hyperparameters()
         config = cfg
         self.config = config
@@ -51,8 +53,14 @@ class LitClassification(LightningModule):
 
     def step(self, batch: Any):
         x, y = batch
-        logits = self.forward(x)
-        loss = self.criterion(logits, y)
+        if self.hparams.get("mixup"):
+            x, y_a, y_b, lam = mixup_data(x, y, self.hparams.mixup)
+            logits = self.forward(x)
+            loss = lam * self.criterion(logits, y_a) + (1 - lam) * self.criterion(logits, y_b)
+        else:
+            logits = self.forward(x)
+            loss = self.criterion(logits, y)
+
         preds = torch.argmax(logits, dim=1)
         return loss, preds, y
 
@@ -64,11 +72,12 @@ class LitClassification(LightningModule):
         loss, preds, targets = self.step(batch)
 
         # log train metrics
-        metric = self.train_metrics(preds, targets)
+        if self.hparams.get("mixup") is None:
+            metric = self.train_metrics(preds, targets)
+            self.log_dict(metric, prog_bar=True)
         self.log("train/loss", loss)
-        self.log_dict(metric, prog_bar=True)
 
-        return {"loss": loss, "preds": preds, "targets": targets}
+        return {"loss": loss}
 
     def training_epoch_end(self, outputs: List[Any]):
         pass
@@ -82,8 +91,8 @@ class LitClassification(LightningModule):
 
         # log val metrics
         metric = self.val_metrics(preds, targets)
-        self.log("val/loss", loss)
         self.log_dict(metric, prog_bar=True)
+        self.log("val/loss", loss)
 
         return {"loss": loss, "preds": preds, "targets": targets}
 
@@ -99,8 +108,8 @@ class LitClassification(LightningModule):
 
         # log test metrics
         metric = self.val_metrics(preds, targets)
-        self.log("test/loss", loss)
         self.log_dict(metric)
+        self.log("test/loss", loss)
 
         return {"loss": loss, "preds": preds, "targets": targets}
 

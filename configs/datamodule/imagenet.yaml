@@ -4,6 +4,7 @@ _target_: src.datamodules.pytorch_datamodule.IMAGENETDataModule
 
 num_classes: 1000
 data_dir: ${data_dir} # data_dir is specified in config.yaml
+randaug_m: 0
 
 # Dataloader
 

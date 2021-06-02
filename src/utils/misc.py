@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -27,3 +28,11 @@ def create_plugins(cfgs):
             )
         )
     return plugins
+
+
+def mixup_data(x, y, alpha=1.0):
+    lam = np.random.beta(alpha, alpha)
+    index = torch.randperm(y.size(0)).type_as(y)
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam

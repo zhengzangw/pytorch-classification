@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - imagenet_mixerb
+
+scheduler:
+  warmup:
+    times: 40000
+
+trainer:
+  gpus: 2
+  accumulate_grad_batches: 8

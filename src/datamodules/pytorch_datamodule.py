@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision.datasets import CIFAR10, MNIST, ImageFolder
 from torchvision.transforms import transforms
 
+from ..augmentations import RandAugment
+
 
 class PytorchDataModule(LightningDataModule):
     def __init__(
@@ -144,9 +146,12 @@ class CIFAR10DataModule(PytorchDataModule):
 class IMAGENETDataModule(PytorchDataModule):
     def __init__(
         self,
+        randaug_m=0,
         **kwargs,
     ):
         super().__init__(**kwargs)
+
+        self.randaug_m = randaug_m
 
         self.data_dir = os.path.join(self.data_dir, "imagenet")
         self.data_dir_train = os.path.join(self.data_dir, "train")
@@ -154,20 +159,24 @@ class IMAGENETDataModule(PytorchDataModule):
         self.prepare_transform()
 
     def prepare_transform(self):
+        _IMAGENET_MEAN = [0.485, 0.456, 0.406]
+        _IMAGENET_STD = [0.229, 0.224, 0.225]
         self.transforms_train = transforms.Compose(
             [
                 transforms.RandomResizedCrop(224),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(mean=_IMAGENET_MEAN, std=_IMAGENET_STD),
             ]
         )
+        if self.randaug_m > 0:
+            self.transforms_train.transforms.insert(0, RandAugment(2, self.randaug_m))
         self.transforms_test = transforms.Compose(
             [
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(mean=_IMAGENET_MEAN, std=_IMAGENET_STD),
             ]
         )
         self.dims = (3, 224, 224)

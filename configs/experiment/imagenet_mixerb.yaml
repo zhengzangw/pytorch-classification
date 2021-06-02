@@ -6,24 +6,28 @@ defaults:
   - override /module: mixer_b_16
   - override /optimizer: adam
   - override /scheduler: poly
-  - override /logger: comet
+  # - override /logger: comet
 
 seed: 12345
 
+model:
+  mixup: 0.5
+
 optimizer:
   lr: 0.001
-  weight_decay: 5.e-4
+  weight_decay: 5.e-4 # smaller than essay
 
 scheduler:
   warmup:
-    times: 40000
+    times: 10000 # for 4k
 
 datamodule:
+  randaug_m: 15
   batch_size: 64
   num_workers: 4
   pin_memory: True
 
 trainer:
-  gpus: 2
+  gpus: 1
   max_epochs: 300
-  accumulate_grad_batches: 8
+  # accumulate_grad_batches: 8
