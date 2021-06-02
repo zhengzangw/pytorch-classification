@@ -6,7 +6,7 @@ defaults:
   - override /module: toy
   - override /optimizer: lars
   - override /scheduler: cosine
-  - override /logger: comet
+  # - override /logger: comet
 
 seed: 12345
 

@@ -13,6 +13,8 @@ from torch.optim.optimizer import Optimizer
 
 
 def create_optimizer_lars(model, lr, momentum, weight_decay, bn_bias_separately, epsilon):
+    if isinstance(lr, int):
+        lr = float(lr)
     if bn_bias_separately:
         optimizer = Lars(
             [

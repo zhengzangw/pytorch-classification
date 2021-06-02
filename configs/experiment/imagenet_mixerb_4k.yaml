@@ -9,7 +9,10 @@ scheduler:
     times: 10000
 
 trainer:
-  batch_size: 128
   gpus: 4
   accumulate_grad_batches: 8
-  weights_save_path: /global/cfs/cdirs/m3691/zangwei/pytorch-classification/job_3
+  gradient_clip_val: 1.0
+  weights_save_path: /global/cfs/cdirs/m3691/zangwei/pytorch-classification/job_4
+
+datamodule:
+  batch_size: 128
