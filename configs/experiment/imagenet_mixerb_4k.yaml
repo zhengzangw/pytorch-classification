@@ -2,7 +2,7 @@
 
 defaults:
   - imagenet_mixerb
-  - override /scheduler: none
+  - override /scheduler: poly
   - override /logger: comet
 
 # scheduler:
@@ -16,4 +16,5 @@ trainer:
   gpus: 4
   accumulate_grad_batches: 8
   gradient_clip_val: 1.0
-  weights_save_path: /global/cfs/cdirs/m3691/zangwei/pytorch-classification/job_4
+  weights_save_path: /global/cfs/cdirs/m3691/zangwei/pytorch-classification/job_5
+  max_epochs: 20

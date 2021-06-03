@@ -128,18 +128,20 @@ class LitClassification(LightningModule):
         )
         max_epoch = config.trainer.max_epochs
         max_iterations = max_epoch * num_steps_per_epoch
-        sch_times = None
+
+        if config.scheduler.policy == "epoch":
+            sch_times = max_epoch
+        else:
+            sch_times = max_iterations
 
         if config.scheduler.get("warmup"):
             if config.scheduler.policy == "epoch":
-                sch_times = max_epoch - config.scheduler.warmup.times
+                sch_times -= config.scheduler.warmup.times
             elif config.scheduler.policy == "iteration":
                 if isinstance(config.scheduler.warmup.times, float):
-                    sch_times = (
-                        max_iterations - config.scheduler.warmup.times * num_steps_per_epoch
-                    )
+                    sch_times -= config.scheduler.warmup.times * num_steps_per_epoch
                 else:
-                    sch_times = max_iterations - config.scheduler.warmup.times
+                    sch_times -= config.scheduler.warmup.times
             else:
                 raise ValueError(
                     "scheduler_policy should be epoch or iteration,"

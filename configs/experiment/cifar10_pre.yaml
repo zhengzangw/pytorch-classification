@@ -8,16 +8,16 @@ defaults:
   - override /module: preact18
   - override /optimizer: sgd
   - override /scheduler: poly
-  - override /logger: comet
+  # - override /logger: comet
 
 seed: 12345
 
 optimizer:
   lr: 0.1
 
-scheduler:
-  warmup:
-    times: 100
+# scheduler:
+#   warmup:
+#     times: 100
 
 datamodule:
   batch_size: 128
