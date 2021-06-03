@@ -9,11 +9,14 @@
 #PBS -m abe
 #PBS -M zhengzangw@gmail.com
 
-export WORK_DIR=/home/project/11002070/zangwei/classification
+export WORK_DIR=/home/project/11002070/zangwei/pytorch-classification
+export PYTHON=/home/users/nus/e0575577/anaconda3/envs/pycls/bin/python
 
-. "/home/users/nus/e0575577/anaconda3/etc/profile.d/conda.sh"
-conda activate zangwei
+nscc-docker run nscc/local/pytorch:latest <<EOF
+cd $WORK_DIR
+$PYTHON run.py experiment=imagenet_mixerb_4k
+EOF
 
-cd $WORK_DIR || exit $?
-
-python run.py trainer.gpus=4 experiment=imagenet_mixerb_4k
+# interactive
+# ---
+# qsub -I -q dgx-dev -l walltime=00:20:00 -P 11002070

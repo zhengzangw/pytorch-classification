@@ -5,9 +5,9 @@ defaults:
   - override /scheduler: poly
   - override /logger: comet
 
-scheduler:
-  warmup:
-    times: 10000
+# scheduler:
+#   warmup:
+#     times: 10000
 
 datamodule:
   batch_size: 128
@@ -17,5 +17,5 @@ trainer:
   accumulate_grad_batches: 8
   gradient_clip_val: 1.0
   # weights_save_path: /global/cfs/cdirs/m3691/zangwei/pytorch-classification/job_5
-  max_epochs: 300
-  # check_val_every_n_epoch: 1
+  max_epochs: 20
+  check_val_every_n_epoch: 5
