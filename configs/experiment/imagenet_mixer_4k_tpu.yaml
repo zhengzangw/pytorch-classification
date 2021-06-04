@@ -1,0 +1,30 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: imagenet
+  - override /trainer: tpu
+  - override /module: mixer_b_16
+  - override /optimizer: adamw
+  - override /scheduler: poly
+  - override /logger: comet
+
+seed: 12345
+
+model:
+  mixup: 0.5
+
+optimizer:
+  lr: 1.e-3
+  weight_decay: 1.e-4 # from yuxuan
+
+datamodule:
+  randaug_m: 15
+  batch_size: 128
+  num_workers: 4
+  # pin_memory: True
+
+trainer:
+  accumulate_grad_batches: 4
+  gradient_clip_val: 1.0
+  max_epochs: 10
+  # check_val_every_n_epoch: 1

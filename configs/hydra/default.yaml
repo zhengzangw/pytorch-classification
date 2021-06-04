@@ -10,3 +10,4 @@ sweep:
 job:
   env_set:
     PYTHONBREAKPOINT: "pudb.set_trace"
+    HYDRA_FULL_ERROR: "1"
