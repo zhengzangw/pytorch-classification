@@ -1,0 +1,6 @@
+_target_: pytorch_lightning.Trainer
+
+gpus: 1
+accelerator: ddp
+weights_summary: "full"
+max_epochs: 0

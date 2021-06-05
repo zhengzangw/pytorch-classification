@@ -1,0 +1,22 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: mnist
+  - override /module: toy
+  - override /optimizer: lars
+  - override /scheduler: cosine
+  - override /logger: comet
+
+seed: 12345
+
+optimizer:
+  lr: 1
+
+datamodule:
+  batch_size: 128
+  num_workers: 4
+  pin_memory: True
+
+trainer:
+  max_epochs: 10
+  accumulate_grad_batches: 2

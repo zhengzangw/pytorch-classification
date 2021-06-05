@@ -1,0 +1,16 @@
+# @package _global_
+
+defaults:
+  - imagenet_mixerb_base
+  - override /trainer: ddp
+  - override /logger: comet
+
+trainer:
+  max_epochs: 20
+  # gpu
+  gpus: 4
+  accumulate_grad_batches: 16
+  check_val_every_n_epoch: 1
+  # slurm
+  # weights_save_path: /global/cfs/cdirs/m3691/zangwei/pytorch-classification/job_5
+  gradient_clip_val: 0.0

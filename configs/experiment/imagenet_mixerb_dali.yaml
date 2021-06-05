@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - imagenet_mixerb_base
+  - override /trainer: ddp
+  - override /datamodule: imagenet_dali
+  - override /module: mixer_b_16
+  - override /optimizer: adamw
+  - override /scheduler: poly
+  # - override /logger: comet
+
+scheduler:
+  warmup:
+    times: 10000 # for 4k

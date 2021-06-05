@@ -1,0 +1,6 @@
+name: step
+policy: epoch
+warmup: null
+
+milestones: [3, 6]
+gamma: 0.1
