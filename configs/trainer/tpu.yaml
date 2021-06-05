@@ -1,6 +1,5 @@
 _target_: pytorch_lightning.Trainer
 
 tpu_cores: 8
-
-precision: 16
-weights_summary: null
+weights_summary: "full"
+progress_bar_refresh_rate: 10

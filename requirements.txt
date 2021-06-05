@@ -7,9 +7,8 @@ torchmetrics>=0.3.2
 # --------- pytorch ecosystem --------- #
 einops>=0.3.0
 timm>=0.4.9
---extra-index-url https://developer.download.nvidia.com/compute/redist
-nvidia-dali-cuda100
-torchinfo
+# --extra-index-url https://developer.download.nvidia.com/compute/redist
+# nvidia-dali-cuda100
 
 # --------- hydra --------- #
 hydra-core==1.1.0.rc1

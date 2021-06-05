@@ -8,6 +8,6 @@ data_dir: ${data_dir} # data_dir is specified in config.yaml
 # Dataloader
 
 batch_size: 64
-effective_batch_size: ${batch_size}
+effective_batch_size: null
 num_workers: 0
 pin_memory: False

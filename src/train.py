@@ -13,7 +13,7 @@ from pytorch_lightning import (
 from pytorch_lightning.loggers import LightningLoggerBase
 
 from src.utils import utils
-from src.utils.misc import create_plugins, summary
+from src.utils.misc import create_plugins
 
 log = utils.get_logger(__name__)
 
@@ -40,9 +40,6 @@ def train(config: DictConfig) -> Optional[float]:
     # Init Lightning model
     log.info(f"Instantiating model <{config.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(config.model, cfg=config, _recursive_=False)
-
-    # Summary Lightning model
-    summary(model.model, datamodule.size())
 
     # Init Lightning callbacks
     callbacks: List[Callback] = []

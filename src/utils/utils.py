@@ -57,14 +57,21 @@ def extras(config: DictConfig) -> None:
         warnings.filterwarnings("ignore")
 
     # set effective batch size
-    if config.trainer.get("tpu_cors"):
-        raise NotImplementedError
-    elif config.trainer.get("gpus"):
-        config.datamodule.effective_batch_size = config.datamodule.batch_size * config.trainer.gpus
+    if config.datamodule.get("effective_batch_size"):
+        pass
     else:
-        config.datamodule.effective_batch_size = config.datamodule.batch_size
-    if config.trainer.get("accumulate_grad_batches"):
-        config.datamodule.effective_batch_size *= config.trainer.accumulate_grad_batches
+        if config.trainer.get("tpu_cores"):
+            config.datamodule.effective_batch_size = (
+                config.datamodule.batch_size * config.trainer.tpu_cores
+            )
+        elif config.trainer.get("gpus"):
+            config.datamodule.effective_batch_size = (
+                config.datamodule.batch_size * config.trainer.gpus
+            )
+        else:
+            config.datamodule.effective_batch_size = config.datamodule.batch_size
+        if config.trainer.get("accumulate_grad_batches"):
+            config.datamodule.effective_batch_size *= config.trainer.accumulate_grad_batches
 
     # set <config.trainer.fast_dev_run=True> if <config.debug=True>
     if config.get("debug"):

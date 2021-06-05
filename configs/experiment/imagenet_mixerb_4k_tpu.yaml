@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - imagenet_mixerb_base
+  - override /trainer: tpu
+  - override /logger: comet
+
+trainer:
+  max_epochs: 20
+  # tpu
+  accumulate_grad_batches: 8
+  check_val_every_n_epoch: 1

@@ -2,7 +2,6 @@
 
 defaults:
   - override /datamodule: imagenet
-  - override /trainer: ddp
   - override /module: mixer_b_16
   - override /optimizer: adamw
   - override /scheduler: poly
@@ -24,5 +23,5 @@ datamodule:
   pin_memory: True
 
 trainer:
-  gpus: 1
+  gradient_clip_val: 1.0
   max_epochs: 300

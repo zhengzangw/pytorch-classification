@@ -4,7 +4,6 @@
 
 defaults:
   - override /datamodule: cifar10
-  - override /trainer: ddp
   - override /module: preact18
   - override /optimizer: sgd
   - override /scheduler: poly
@@ -14,10 +13,6 @@ seed: 12345
 
 optimizer:
   lr: 0.1
-
-# scheduler:
-#   warmup:
-#     times: 100
 
 datamodule:
   batch_size: 128

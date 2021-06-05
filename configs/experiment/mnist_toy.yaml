@@ -2,7 +2,6 @@
 
 defaults:
   - override /datamodule: mnist
-  - override /trainer: ddp
   - override /module: toy
   - override /optimizer: lars
   - override /scheduler: cosine
@@ -19,6 +18,5 @@ datamodule:
   pin_memory: True
 
 trainer:
-  gpus: 1
   max_epochs: 10
   accumulate_grad_batches: 2

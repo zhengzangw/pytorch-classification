@@ -2,20 +2,23 @@
 
 # specify here default training configuration
 defaults:
-  - trainer: cpu.yaml
-  - model: default.yaml
-  - module: toy.yaml
-  - loss: crossentropy.yaml
-  - optimizer: adam.yaml
-  - scheduler: none.yaml
-  - datamodule: mnist.yaml
-  - callbacks: default.yaml
+  # framework
+  - trainer: default
+  - callbacks: default
+  - model: default
   - logger: null
-
+  # data
+  - datamodule: mnist
+  # model
+  - module: toy
+  - loss: crossentropy
+  - optimizer: adamw
+  - scheduler: none
+  # exp
   - experiment: null
   - hparams_search: null
-
-  - hydra: default.yaml
+  # hydra
+  - hydra: default
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
 
