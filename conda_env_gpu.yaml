@@ -1,4 +1,4 @@
-name: pycls
+name: pytorch_dl
 
 channels:
   - pytorch

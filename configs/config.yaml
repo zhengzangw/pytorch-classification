@@ -5,7 +5,7 @@ defaults:
   # framework
   - trainer: default
   - callbacks: default
-  - model: default
+  - model: classification
   - logger: null
   # data
   - datamodule: mnist

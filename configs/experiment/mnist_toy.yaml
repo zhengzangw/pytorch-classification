@@ -1,11 +1,15 @@
 # @package _global_
 
 defaults:
+  # framework
+  - override /trainer: ddp
+  - override /logger: comet
+  # data
   - override /datamodule: mnist
+  # model
   - override /module: toy
   - override /optimizer: lars
   - override /scheduler: cosine
-  - override /logger: comet
 
 seed: 12345
 
@@ -19,4 +23,3 @@ datamodule:
 
 trainer:
   max_epochs: 10
-  accumulate_grad_batches: 2

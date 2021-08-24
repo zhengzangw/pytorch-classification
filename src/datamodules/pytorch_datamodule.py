@@ -163,7 +163,8 @@ class IMAGENETDataModule(PytorchDataModule):
         _IMAGENET_STD = [0.229, 0.224, 0.225]
         self.transforms_train = transforms.Compose(
             [
-                transforms.RandomResizedCrop(224),
+                # transforms.RandomResizedCrop(224),
+                transforms.Resize((224, 224)),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=_IMAGENET_MEAN, std=_IMAGENET_STD),
@@ -173,8 +174,9 @@ class IMAGENETDataModule(PytorchDataModule):
             self.transforms_train.transforms.insert(0, RandAugment(2, self.randaug_m))
         self.transforms_test = transforms.Compose(
             [
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
+                # transforms.Resize(256),
+                # transforms.CenterCrop(224),
+                transforms.Resize((224, 224)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=_IMAGENET_MEAN, std=_IMAGENET_STD),
             ]

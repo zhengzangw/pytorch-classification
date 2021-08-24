@@ -1,13 +1,8 @@
 # @package _global_
 
 defaults:
-  - override /module: toy
-  - override /datamodule: mnist
-  - override /callbacks: none
+  - mnist_toy
+  - override /trainer: gputest
 
-seed: 12345
-
-datamodule:
-  batch_size: 128
-  num_workers: 4
-  pin_memory: True
+trainer:
+  max_epochs: 0

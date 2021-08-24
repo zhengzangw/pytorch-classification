@@ -6,13 +6,16 @@ defaults:
   - override /datamodule: cifar10
   - override /module: preact18
   - override /optimizer: sgd
-  - override /scheduler: poly
-  # - override /logger: comet
+  - override /scheduler: step
+  - override /logger: comet
 
 seed: 12345
 
 optimizer:
   lr: 0.1
+
+scheduler:
+  milestones: [150, 250]
 
 datamodule:
   batch_size: 128
@@ -20,6 +23,5 @@ datamodule:
   pin_memory: True
 
 trainer:
-  gpus: 2
-  max_epochs: 150
-  accumulate_grad_batches: 2
+  gpus: 1
+  max_epochs: 350
