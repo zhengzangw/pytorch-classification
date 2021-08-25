@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - cityscapes_deeplab
+
+module:
+  cosine: True
+  temparature: 0.05

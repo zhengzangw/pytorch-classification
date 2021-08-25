@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - gta5_cityscapes_cosine
+
+module:
+  cosine: True
+  temparature: 0.05

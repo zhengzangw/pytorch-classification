@@ -2,7 +2,7 @@
 
 defaults:
   - override /model: segDA
-  - override /datamodule: cityscapes
+  - override /datamodule: gta5_cityscapes
   - override /module: deeplab
   - override /optimizer: sgd
   - override /scheduler: poly
@@ -12,7 +12,7 @@ defaults:
 seed: 1337
 
 optimizer:
-  lr: 0.007
+  lr: 0.01
   momentum: 0.9
   weight_decay: 1.e-4
 
@@ -26,13 +26,13 @@ loss:
   ignore_index: 250
 
 datamodule:
-  batch_size: 8
+  batch_size: 4
   num_workers: 4
 
 trainer:
   weights_summary: "top"
-  progress_bar_refresh_rate: 50
-  max_epochs: 180
+  progress_bar_refresh_rate: 10
+  max_epochs: 80
 
 callbacks:
   early_stopping:
