@@ -1,0 +1,38 @@
+# @package _global_
+
+defaults:
+  - override /model: segDA
+  - override /datamodule: cityscapes
+  - override /module: deeplab
+  - override /optimizer: sgd
+  - override /scheduler: poly
+  - override /trainer: gpu
+
+seed: 1337
+
+optimizer:
+  lr: 0.007
+  momentum: 0.9
+  weight_decay: 1.e-4
+
+scheduler:
+  end_lr: 1e-8
+  power: 0.9
+  warmup:
+    times: 1000
+
+loss:
+  ignore_index: 250
+
+datamodule:
+  batch_size: 8
+  num_workers: 4
+
+trainer:
+  max_epochs: 180
+
+callbacks:
+  early_stopping:
+    monitor: "val/IoU"
+  model_checkpoint:
+    monitor: "val/IoU"

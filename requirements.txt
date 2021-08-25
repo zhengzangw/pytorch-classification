@@ -40,4 +40,5 @@ sh
 scikit-learn
 seaborn
 pudb
+imageio
 # dvc

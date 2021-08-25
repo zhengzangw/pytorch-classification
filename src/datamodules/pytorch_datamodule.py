@@ -34,6 +34,7 @@ class PytorchDataModule(LightningDataModule):
     @property
     def train_len(self):
         assert self.data_train is not None
+        assert len(self.data_train) > 0
         return len(self.data_train)
 
     def prepare_data(self):

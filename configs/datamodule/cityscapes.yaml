@@ -1,0 +1,19 @@
+_target_: src.datamodules.dadatamodule.DADataModule
+
+src: cityscapes
+tgt: cityscapes
+data_dir: ${data_dir}
+num_classes: 19
+ignore_index: 250
+
+augmentations:
+  rcrop: [768, 768]
+  brightness: 0.5
+  contrast: 0.5
+  saturation: 0.5
+  hflip: 0.5
+
+batch_size: 64
+effective_batch_size: null
+num_workers: 0
+pin_memory: False

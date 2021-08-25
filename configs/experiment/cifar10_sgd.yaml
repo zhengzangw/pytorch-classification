@@ -4,18 +4,17 @@
 
 defaults:
   - override /datamodule: cifar10
+  - override /trainer: ddp
   - override /module: preact18
   - override /optimizer: sgd
-  - override /scheduler: step
+  - override /scheduler: cosine
   - override /logger: comet
 
 seed: 12345
 
 optimizer:
   lr: 0.1
-
-scheduler:
-  milestones: [150, 250]
+  weight_decay: 5.e-4
 
 datamodule:
   batch_size: 128
@@ -24,4 +23,4 @@ datamodule:
 
 trainer:
   gpus: 1
-  max_epochs: 350
+  max_epochs: 150
