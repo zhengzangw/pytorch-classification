@@ -1,0 +1,11 @@
+# @package _global_
+
+defaults:
+  - cityscapes_cosine
+
+trainer:
+  gpus: 4
+
+datamodule:
+  batch_size: 4
+  num_workers: 4

@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - gta5_cityscapes_cosine
+
+trainer:
+  gpus: 4
+  max_epochs: 80
+
+datamodule:
+  batch_size: 4
+  num_workers: 4

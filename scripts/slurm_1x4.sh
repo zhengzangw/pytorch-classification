@@ -17,7 +17,7 @@
 export PYTHONFAULTHANDLER=1
 export NCCL_DEBUG=INFO
 
-export CONDA_NAME=pycls
+export CONDA_NAME=pytorch_dl
 export CONDA_PYTHON=/global/homes/z/zangwei/.conda/envs/$CONDA_NAME
 
 conda activate $CONDA_PYTHON
