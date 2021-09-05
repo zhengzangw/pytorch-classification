@@ -1,0 +1,11 @@
+# @package _global_
+
+defaults:
+  - gta5_cityscapes_deeplab
+
+trainer:
+  gpus: 4
+
+datamodule:
+  batch_size: 4
+  num_workers: 4

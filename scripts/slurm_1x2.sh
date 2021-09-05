@@ -6,18 +6,19 @@
 
 #SBATCH --qos=regular
 #SBATCH --constraint=gpu
-#SBATCH --time=00:05:00
+#SBATCH --time=04:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=8
 
 #SBATCH --signal=SIGUSR1@90
+#SBATCH --requeue
 
 export PYTHONFAULTHANDLER=1
 export NCCL_DEBUG=INFO
 
-export CONDA_NAME=pycls
+export CONDA_NAME=pytorch_dl
 export CONDA_PYTHON=/global/homes/z/zangwei/.conda/envs/$CONDA_NAME
 
 conda activate $CONDA_PYTHON

@@ -13,6 +13,7 @@
 #SBATCH --cpus-per-task=12
 
 #SBATCH --signal=SIGUSR1@90
+#SBATCH --requeue
 
 export PYTHONFAULTHANDLER=1
 export NCCL_DEBUG=INFO
