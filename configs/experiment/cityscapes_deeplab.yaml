@@ -10,11 +10,17 @@ defaults:
   - override /logger: comet
 
 seed: 1337
-
-optimizer:
-  lr: 0.007
-  momentum: 0.9
-  weight_decay: 1.e-4
+loss:
+  ignore_index: 250
+callbacks:
+  early_stopping:
+    monitor: "val/IoU"
+  model_checkpoint:
+    monitor: "val/IoU"
+trainer:
+  weights_summary: "top"
+  progress_bar_refresh_rate: 50
+  max_epochs: 180
 
 scheduler:
   end_lr: 1e-8
@@ -22,20 +28,12 @@ scheduler:
   warmup:
     times: 1000
 
-loss:
-  ignore_index: 250
+optimizer:
+  lr: 0.007
+  momentum: 0.9
+  weight_decay: 1.e-4
 
 datamodule:
   batch_size: 8
   num_workers: 4
-
-trainer:
-  weights_summary: "top"
-  progress_bar_refresh_rate: 50
-  max_epochs: 180
-
-callbacks:
-  early_stopping:
-    monitor: "val/IoU"
-  model_checkpoint:
-    monitor: "val/IoU"
+  pin_memory: True

@@ -5,7 +5,6 @@ defaults:
 
 trainer:
   gpus: 4
-  max_epochs: 80
 
 datamodule:
   batch_size: 4
