@@ -13,7 +13,7 @@ augmentations:
   saturation: 0.5
   hflip: 0.5
 
-batch_size: 64
+batch_size: 4
 effective_batch_size: null
 num_workers: 0
 pin_memory: False
