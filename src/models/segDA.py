@@ -16,7 +16,7 @@ log = utils.get_logger(__name__)
 
 
 class LitSegDA(LitBase):
-    def __init__(self, cfg: Optional[DictConfig]):
+    def __init__(self, cfg: Optional[DictConfig], ssl=False):
         super().__init__(cfg=cfg)
 
         # metric
@@ -37,7 +37,11 @@ class LitSegDA(LitBase):
     def training_step(self, batch: Any, batch_idx: int):
         # Get src info
         batch_src = batch["src"]
-        src_imgs, src_labels, src_idxs = batch_src["image"], batch_src["label"], batch_src["index"]
+        src_imgs, src_labels, src_idxs = (
+            batch_src["image"],
+            batch_src["label"],
+            batch_src["index"],
+        )
 
         # Get tgt info
         if "tgt" in batch:

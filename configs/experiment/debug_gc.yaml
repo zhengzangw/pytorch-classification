@@ -5,4 +5,7 @@ defaults:
   - override /logger: null
 
 datamodule:
-  superpixel: True
+  superpixel: False
+
+model:
+  ssl: True
