@@ -26,7 +26,8 @@ def template_test(data_class, name, **kwargs):
     bs = 4
     trainloader = torch.utils.data.DataLoader(dst, batch_size=bs, num_workers=0)
 
-    imgs, labels, ind = next(iter(trainloader))
+    batch = next(iter(trainloader))
+    imgs, labels, ind = batch["image"], batch["label"], batch["index"]
     imgs = imgs.numpy()[:, ::-1, :, :]
     imgs = np.transpose(imgs, [0, 2, 3, 1])
     f, axarr = plt.subplots(bs, 2)
@@ -59,20 +60,6 @@ def test_GTA5():
         n_classes=19,
         img_cols=1914,
         img_rows=1052,
-        norm=False,
-    )
-
-
-def test_synthia():
-    return
-    return template_test(
-        Synthia,
-        "synthia",
-        rootpath="./data/SYNTHIA",
-        img_cols=1914,
-        img_rows=1052,
-        n_classes=13,
-        is_transform=True,
         norm=False,
     )
 

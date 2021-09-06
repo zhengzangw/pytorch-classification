@@ -48,8 +48,6 @@ class LitSegDA(LitBase):
                 batch_tgt["index"],
             )
 
-        # breakpoint()
-
         # loss
         src_results = self.forward(src_imgs)
         src_logits = src_results["out"]

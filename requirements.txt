@@ -37,8 +37,12 @@ python-dotenv
 rich
 pytest
 sh
-scikit-learn
 seaborn
 pudb
 imageio
 # dvc
+
+# --------- others:cal --------- #
+opencv-contrib-python
+faiss-gpu
+scikit-learn

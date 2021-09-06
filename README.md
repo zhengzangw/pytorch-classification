@@ -70,4 +70,10 @@ You can override any parameter from command line like this
 python run.py trainer.max_epochs=20 datamodule.batch_size=64
 ```
 
+## Pytest
+
+```sh
+pytest -x --pdb
+```
+
 <br>
