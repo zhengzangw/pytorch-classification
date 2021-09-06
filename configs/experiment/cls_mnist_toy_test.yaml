@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - mnist_toy
+  - cls_mnist_toy
   - override /trainer: gputest
 
 trainer:

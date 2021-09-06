@@ -1,4 +1,4 @@
-_target_: src.datamodules.dali_datamodule.IMAGENET_DALI_DataModule
+_target_: src.datamodules.datamodule_cls_dali.IMAGENET_DALI_DataModule
 
 # Dataset
 

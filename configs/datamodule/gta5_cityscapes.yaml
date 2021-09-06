@@ -1,4 +1,4 @@
-_target_: src.datamodules.dadatamodule.DADataModule
+_target_: src.datamodules.datamodule_seg.DADataModule
 
 src: gta5
 tgt: cityscapes

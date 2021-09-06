@@ -1,4 +1,4 @@
-_target_: src.datamodules.pytorch_datamodule.CIFAR10DataModule
+_target_: src.datamodules.datamodule_cls.CIFAR10DataModule
 
 # Dataset
 

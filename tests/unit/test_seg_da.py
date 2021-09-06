@@ -6,7 +6,7 @@ import torch
 from src import datamodules
 from src.augmentations.seg_aug import get_composed_augmentations
 from src.datamodules.cityscapes import Cityscapes
-from src.datamodules.dadatamodule import DADataModule
+from src.datamodules.datamodule_seg import DADataModule
 from src.datamodules.gta5 import GTA5
 from src.datamodules.synthia import Synthia
 
@@ -77,7 +77,7 @@ def test_synthia():
     )
 
 
-def test_dadatamodule():
+def test_datamodule_seg():
     loader = DADataModule(augmentations=aug)
     loader.setup()
     assert not loader.is_da_task

@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - gta5_cityscapes_cosine
+  - override /logger: null
+
+datamodule:
+  superpixel: True

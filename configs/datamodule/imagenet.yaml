@@ -1,4 +1,4 @@
-_target_: src.datamodules.pytorch_datamodule.IMAGENETDataModule
+_target_: src.datamodules.datamodule_cls.IMAGENETDataModule
 
 # Dataset
 

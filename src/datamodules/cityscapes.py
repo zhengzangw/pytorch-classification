@@ -1,8 +1,9 @@
 import glob
 import os
+from collections import OrderedDict
 
 from ..utils import utils
-from .daseg_base import Cityscapes_Compatible_Dataset
+from .base_seg import Cityscapes_Compatible_Dataset
 
 log = utils.get_logger(__name__)
 
@@ -177,8 +178,8 @@ class Cityscapes(Cityscapes_Compatible_Dataset):
         log.info(f"[cityscapes] Found {len(self.files)} {self.split} images")
 
         if self.superpixel:
-            self.sps_base = f"cityscapes_{self.split}_sp"
-            self.sp = glob.glob(f"cityscapes_{self.split}_sp/*.dat")
+            self.sps_base = os.path.join(self.root, f"cityscapes_{self.split}_sp")
+            self.sp = glob.glob(f"{self.sps_base}/*.dat")
             assert len(self.sp) == len(self.files)
 
     def __len__(self):
@@ -193,13 +194,15 @@ class Cityscapes(Cityscapes_Compatible_Dataset):
             img_path.split(os.sep)[-2],
             os.path.basename(img_path)[:-15] + "gtFine_labelIds.png",
         )
-        if self.superpixel:
-            sp_path = os.path.join(
+        sp_path = (
+            os.path.join(
                 self.sps_base,
                 os.path.basename(img_path).split(".")[0] + ".dat",
             )
-            img, lbl, sp = self.post_process(img_path, lbl_path, sp_path=sp_path)
-            return img, lbl, sp, self.files[index]
-        else:
-            img, lbl = self.post_process(img_path, lbl_path)
-            return img, lbl, self.files[index]
+            if self.superpixel
+            else None
+        )
+
+        ret = self.post_process(img_path, lbl_path, sp_path=sp_path)
+        ret["index"] = index
+        return ret

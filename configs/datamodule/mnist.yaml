@@ -1,4 +1,4 @@
-_target_: src.datamodules.pytorch_datamodule.MNISTDataModule
+_target_: src.datamodules.datamodule_cls.MNISTDataModule
 
 # Dataset
 

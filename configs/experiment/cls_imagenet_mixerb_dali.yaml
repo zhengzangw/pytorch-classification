@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - imagenet_mixerb_base
+  - cls_imagenet_mixerb_base
   - override /trainer: ddp
   - override /datamodule: imagenet_dali
   - override /module: mixer_b_16

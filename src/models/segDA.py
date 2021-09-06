@@ -35,9 +35,20 @@ class LitSegDA(LitBase):
     # ------------
 
     def training_step(self, batch: Any, batch_idx: int):
-        src_imgs, src_labels, src_idxs = batch["src"]
+        # Get src info
+        batch_src = batch["src"]
+        src_imgs, src_labels, src_idxs = batch_src["image"], batch_src["label"], batch_src["index"]
+
+        # Get tgt info
         if "tgt" in batch:
-            tgt_imgs, tgt_labels, tgt_idxs = batch["tgt"]
+            batch_tgt = batch["tgt"]
+            tgt_imgs, tgt_labels, tgt_idxs = (
+                batch_tgt["image"],
+                batch_tgt["label"],
+                batch_tgt["index"],
+            )
+
+        # breakpoint()
 
         # loss
         src_results = self.forward(src_imgs)
@@ -63,7 +74,7 @@ class LitSegDA(LitBase):
     # ------------
 
     def validation_step(self, batch: Any, batch_idx: int):
-        imgs, labels, idxs = batch
+        imgs, labels, idxs = batch["image"], batch["label"], batch["index"]
 
         # loss
         result = self.model(imgs)

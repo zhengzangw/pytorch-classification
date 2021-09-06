@@ -90,10 +90,11 @@ class Cityscapes_Compatible_Dataset(data.Dataset):
             else:
                 img, lbl = self.transform(img, lbl)
 
+        ret = dict(image=img, label=lbl)
         if sp_path is not None:
-            return img, lbl, sp
-        else:
-            return img, lbl
+            ret["superpixel"] = sp
+
+        return ret
 
     def transform(self, img, lbl, sp=None):
         lbl = torch.from_numpy(lbl).long()

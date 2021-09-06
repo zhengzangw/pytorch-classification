@@ -1,7 +1,11 @@
 import glob
 import os
 
-from .daseg_base import Cityscapes_Compatible_Dataset
+from ..utils import utils
+from .base_seg import Cityscapes_Compatible_Dataset
+
+log = utils.get_logger(__name__)
+
 
 CLASS_INFO = {
     19: {
@@ -148,16 +152,29 @@ class Synthia(Cityscapes_Compatible_Dataset):
         self.image_base_path = os.path.join(self.root, "RGB/train")
         self.label_base_path = os.path.join(self.root, "GT/LABELS")
         self.ids = glob.glob(f"{self.label_base_path}/**/*.png", recursive=True)
+        log.info("[synthia] Found {} images".format(len(self.ids)))
 
-        print("[synthia] Found {} images".format(len(self.ids)))
+        if self.superpixel:
+            self.sps_base = os.path.join(self.root, "synthia_sp")
+            self.sp = glob.glob(f"{self.sps_base}/*.dat")
+            assert len(self.sp) == len(self.ids)
 
     def __len__(self):
         return len(self.ids)
 
     def __getitem__(self, index):
-        id = self.ids[index]
-        img_path = os.path.join(self.image_base_path, id.split("/")[-1])
-        lbl_path = id
+        ids = self.ids[index]
+        img_path = os.path.join(self.image_base_path, ids.split("/")[-1])
+        lbl_path = ids
+        sp_path = (
+            os.path.join(
+                self.sps_base,
+                os.path.basename(img_path).split(".")[0] + ".dat",
+            )
+            if self.superpixel
+            else None
+        )
 
-        img, lbl = self.post_process(img_path, lbl_path)
-        return img, lbl, self.ids[index]
+        ret = self.post_process(img_path, lbl_path, sp_path=sp_path)
+        ret["index"] = index
+        return ret
