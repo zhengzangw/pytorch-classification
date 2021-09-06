@@ -5,7 +5,11 @@ defaults:
   - override /logger: null
 
 datamodule:
-  superpixel: False
+  superpixel: True
 
-model:
-  ssl: True
+ssl:
+  enable: True
+  k: [19, 38]
+  k_rep: 2
+# trainer:
+#   gpus: 2

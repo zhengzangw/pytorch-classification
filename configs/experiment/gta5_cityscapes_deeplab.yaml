@@ -21,6 +21,7 @@ trainer:
   weights_summary: "top"
   progress_bar_refresh_rate: 10
   max_epochs: 80
+  sync_batchnorm: True
 
 scheduler:
   end_lr: 1e-8
