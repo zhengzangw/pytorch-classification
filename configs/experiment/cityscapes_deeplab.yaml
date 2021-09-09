@@ -17,6 +17,7 @@ callbacks:
     monitor: "val/IoU"
   model_checkpoint:
     monitor: "val/IoU"
+    filename: "epoch{epoch:02d}-val_IoU{val/IoU:.2f}"
 trainer:
   weights_summary: "top"
   progress_bar_refresh_rate: 50

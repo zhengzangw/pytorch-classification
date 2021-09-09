@@ -10,7 +10,15 @@ log = utils.get_logger(__name__)
 class Kmeans(object):
     DEFAULT_KMEANS_SEED = 1234
 
-    def __init__(self, k_list, data, epoch=0, init_centroids=None, frozen_centroids=False):
+    def __init__(
+        self,
+        k_list,
+        data,
+        epoch=0,
+        init_centroids=None,
+        frozen_centroids=False,
+        name="",
+    ):
         """
         Performs many k-means clustering.
 
@@ -26,6 +34,7 @@ class Kmeans(object):
         self.d = data.shape[-1]
         self.init_centroids = init_centroids
         self.frozen_centroids = frozen_centroids
+        self.name = name
 
         self.debug = False
         self.epoch = epoch + 1
@@ -40,7 +49,7 @@ class Kmeans(object):
         labels = []
         centroids = []
 
-        tqdm_batch = tqdm(total=len(self.k_list), desc="[K-means]")
+        tqdm_batch = tqdm(total=len(self.k_list), desc=f"[K-means {self.name}]", leave=False)
         for k_idx, each_k in enumerate(self.k_list):
             seed = k_idx * self.epoch + self.DEFAULT_KMEANS_SEED
             kmeans = faiss_Kmeans(
@@ -78,17 +87,19 @@ class MemQueue:
     # gta5: 24967 x 21749
     # 2679 sp for one image
 
-    def __init__(self, size=2500 * 500, dim=256):
+    def __init__(self, size=2500 * 500, dim=256, name=""):
         super().__init__()
 
         self.size = size
         self.dim = dim
         self.tail = 0
         self.filled = False
+        self.ready = False
+        self.name = name
 
         self.memory_queue = np.zeros((size, dim), dtype=np.float32)
 
-    def push(self, features):
+    def _push(self, features):
         length = len(features)
         assert length < self.size
         left = self.tail
@@ -98,15 +109,27 @@ class MemQueue:
         else:
             # log.info(f"[Memqueue] Filled with tail={self.tail}, input length={length}")
             self.filled = True
+            self.ready = True
             mid = self.size - left
             self.memory_queue[left:] = features[:mid]
             self.memory_queue[:right] = features[mid:]
 
         self.tail = right
 
+    def push(self, features, sample_ratio=0.5):
+        # features [N x dim]
+        if sample_ratio < 1:
+            size = len(features)
+            sample_num = int(size * sample_ratio)
+            mask = np.random.choice(size, sample_num, replace=False)
+            features = features[mask]
+        self._push(features)
+
     def protos(self, k_list, **kwargs):
-        km = Kmeans(k_list, self.memory_queue, **kwargs)
+        km = Kmeans(k_list, self.memory_queue, name=self.name, **kwargs)
         ret = km.compute()
+        # after compute the cluster, waiting for new features
+        self.ready = False
         return ret["centroid"]
 
     def __len__(self):

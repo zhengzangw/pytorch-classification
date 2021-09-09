@@ -4,7 +4,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from ..utils import utils
 from .sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+
+log = utils.get_logger(__name__)
 
 
 class CosineConv2d(nn.Conv2d):
@@ -12,7 +15,7 @@ class CosineConv2d(nn.Conv2d):
     # TODO: normalized class average representation
 
     def __init__(self, *args, **kwargs):
-        print("[Decoder] Use cosine classifier.")
+        log.info("[Decoder] Use cosine classifier.")
         super().__init__(*args, **kwargs, bias=False)
 
     def forward(self, x):
@@ -36,7 +39,7 @@ class CosineConv2d(nn.Conv2d):
 
 class ConsineLinear(nn.Module):
     def __init__(self, in_channel, out_channel, *args, **kwargs):
-        print("[Decoder] Use linear cosine classifier.")
+        log.info("[Decoder] Use linear cosine classifier.")
         super().__init__()
 
         self.fc = nn.Linear(in_channel, out_channel, bias=False)
@@ -101,7 +104,7 @@ class Decoder(nn.Module):
         self.finetune_classifier = finetune_classifier
         self.aux = aux
         if finetune_classifier:
-            print("Detach Backbone.")
+            log.info("Detach Backbone.")
         if cosine:
             LastLayerConv2d = CosineConv2d
             # LastLayerConv2d = ConsineLinear
@@ -122,7 +125,7 @@ class Decoder(nn.Module):
         if self.finetune_classifier:
             x = x.detach()
         features = x
-        # breakpoint()
+
         x = self.classifier(x)
         x = x / self.temparature
         if self.aux:

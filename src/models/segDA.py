@@ -87,15 +87,17 @@ class LitSegDA(LitBase):
         if self.ssl:
             # ssl: memory queue (cpu) on master node
             if self.global_rank == 0:
-                self.memqueue_src = MemQueue()
+                self.memqueue_src = MemQueue(name="src")
             # ssl: proto on each node
             self.proto_src = self._create_proto_slot()
+            self.proto_src_ready = False
         if self.ssl and self.da:
             # ssl: memory queue (cpu) on master node
             if self.global_rank == 0:
-                self.memqueue_tgt = MemQueue()
+                self.memqueue_tgt = MemQueue(name="tgt")
             # ssl: proto on each node
             self.proto_tgt = self._create_proto_slot()
+            self.proto_tgt_ready = False
 
     def _cal_feature_by_superpixel(self, features, labels, superpixels):
         resolution = features.shape[-2:]
@@ -120,8 +122,11 @@ class LitSegDA(LitBase):
 
         return mean_features
 
-    def cal_proto(self):
-        pass
+    def _ssl_loss(self, features, domain):
+        if not getattr(self, f"proto_{domain}_ready"):
+            return torch.sum(torch.zeros((1)).cuda())
+        else:
+            return torch.sum(torch.zeros((1)).cuda())
 
     # ------------
     # train
@@ -150,12 +155,22 @@ class LitSegDA(LitBase):
         src_results = self.forward(src_imgs)
         src_logits = src_results["out"]
         src_loss = self.criterion(src_logits, src_labels)
+        loss = src_loss
+        ret = dict(cls_loss=src_loss.detach())
 
+        # ssl loss
         if self.ssl:
+            src_ssl_loss = self._ssl_loss(src_results["feature"], "src")
+            ret["src_ssl_loss"] = src_ssl_loss.detach()
+            loss += src_ssl_loss
+        if self.ssl and self.da:
             tgt_results = self.forward(tgt_imgs)
 
-        loss = src_loss
-        ret = dict(loss=loss)
+            tgt_ssl_loss = self._ssl_loss(tgt_results["feature"], "tgt")
+            ret["tgt_ssl_loss"] = tgt_ssl_loss.detach()
+            loss += tgt_ssl_loss
+
+        ret["loss"] = loss
 
         # --- begin:SSL ---
         # calculate features by superpixel
@@ -184,47 +199,38 @@ class LitSegDA(LitBase):
         k_rep = self.config.ssl.k_rep
 
         # --- begin:SSL ---
-        # (all node) all_gather mean features
+        def update_mem_and_proto(outputs, domain="src"):
+            # (all node) all_gather mean features
+            self_proto = getattr(self, "proto_" + domain)
+            mean_features = outputs.pop(domain + "_mean_features")
+            mean_features_list = [
+                torch.zeros_like(mean_features) for _ in range(self.trainer.num_gpus)
+            ]
+            dist.all_gather(mean_features_list, mean_features)
+            mean_features_gather = torch.cat(mean_features_list)
+            # (master) update memqueue
+            if self.global_rank == 0:
+                memqueue = getattr(self, "memqueue_" + domain)
+                mean_features_to_push = remove_empty_features(mean_features_gather)
+                mean_features_to_push = mean_features_to_push.detach().cpu().numpy()
+                memqueue.push(mean_features_to_push)
+                # (master) compute cluster
+                if memqueue.ready:
+                    proto_np = memqueue.protos(self.k_list)
+                    proto = list_np_to_torch(proto_np)
+                    for i, _ in enumerate(k):
+                        self_proto[i] = torch.stack(proto[i * k_rep : (i + 1) * k_rep])
+            # (all node) broadcast
+            dist.broadcast_object_list(self_proto, src=0)
+            setattr(self, f"proto_{domain}_ready", torch.norm(self_proto[0]) > 1e-12)
+
         if self.ssl:
-            src_mean_features = outputs["src_mean_features"]
-            src_mean_features_list = [
-                torch.zeros_like(src_mean_features) for _ in range(self.trainer.num_gpus)
-            ]
-            dist.all_gather(src_mean_features_list, src_mean_features)
-            src_mean_features_gather = torch.cat(src_mean_features_list)
+            update_mem_and_proto(outputs, "src")
         if self.ssl and self.da:
-            tgt_mean_features = outputs["src_mean_features"]
-            tgt_mean_features_list = [
-                torch.zeros_like(tgt_mean_features) for _ in range(self.trainer.num_gpus)
-            ]
-            dist.all_gather(tgt_mean_features_list, tgt_mean_features)
-            tgt_mean_features_gather = torch.cat(tgt_mean_features_list)
-        # (master) update memqueue
-        if self.global_rank == 0:
-            if self.ssl:
-                src_mean_features_to_push = remove_empty_features(src_mean_features_gather)
-                src_mean_features_to_push = src_mean_features_to_push.detach().cpu().numpy()
-                self.memqueue_src.push(src_mean_features_to_push)
-            if self.ssl and self.da:
-                tgt_mean_features_to_push = remove_empty_features(tgt_mean_features_gather)
-                tgt_mean_features_to_push = tgt_mean_features_to_push.detach().cpu().numpy()
-                self.memqueue_src.push(tgt_mean_features_to_push)
-            # (master) compute cluster
-            if self.ssl and self.memqueue_src.filled:
-                proto_src_np = self.memqueue_src.protos(self.k_list)
-                proto_src = list_np_to_torch(proto_src_np)
-                for i, _ in enumerate(k):
-                    self.proto_src[i] = torch.stack(proto_src[i * k_rep :: k_rep])
-            if self.ssl and self.da and self.memqueue_tgt.filled:
-                proto_tgt_np = self.memqueue_tgt.protos(self.k_list)
-                proto_tgt = list_np_to_torch(proto_tgt_np)
-                for i, _ in enumerate(k):
-                    self.proto_tgt[i] = torch.stack(proto_tgt[i * k_rep :: k_rep])
-        # (all node) broadcast
-        dist.broadcast_object_list(self.proto_src, src=0)
-        dist.broadcast_object_list(self.proto_tgt, src=0)
+            update_mem_and_proto(outputs, "tgt")
         # --- end:SSL ---
-        return outputs["loss"]
+
+        return outputs
 
     def training_epoch_end(self, outputs):
         self.log_dict(self.train_src_metrics.compute(), prog_bar=True)
@@ -259,7 +265,7 @@ class LitSegDA(LitBase):
     # ------------
 
     def test_step(self, batch: Any, batch_idx: int):
-        imgs, labels, idxs = batch
+        imgs, labels, idxs = batch["image"], batch["label"], batch["index"]
 
         # loss
         result = self.model(imgs)
