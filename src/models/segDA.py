@@ -3,6 +3,7 @@ from typing import Any, List, Optional
 import einops
 import hydra
 import torch
+import torch.distributed as dist
 import torch.nn.functional as F
 import torchmetrics
 from omegaconf import DictConfig
@@ -31,6 +32,12 @@ def list_np_to_torch(np_list):
     return ret
 
 
+def remove_empty_features(features):
+    zero_mask = features.norm(dim=-1) < 1e-12
+    features = features[~zero_mask]
+    return features
+
+
 class LitSegDA(LitBase):
     def __init__(self, cfg: Optional[DictConfig]):
         super().__init__(cfg=cfg)
@@ -46,18 +53,31 @@ class LitSegDA(LitBase):
         self.valid_metrics = metrics.clone(prefix="val/")
         self.test_metrics = metrics.clone(prefix="test/")
 
-        # ssl
+        # --- begin:SSL ---
+        self._max_superpixel_id = 22000
+        self._dim = 256  # hard-coded
+        self.ssl = self.config.ssl.enable
+        self.da = self.config.datamodule.src != self.config.datamodule.tgt
         self._init_memqueue()
-        # breakpoint()
+        # --- end:SSL ---
 
     # ------------
     # ssl
     # ------------
 
-    def _init_memqueue(self):
-        self.ssl = self.config.ssl.enable
+    def _create_proto_slot(self):
+        proto_list = []
         k = list(self.config.ssl.k)
-        k = k if isinstance(k, list) else [k]
+        k_rep = self.config.ssl.k_rep
+        for k_i in k:
+            proto = torch.zeros((k_rep, k_i, self._dim)).cuda()
+            proto_list.append(proto)
+        return proto_list
+
+    def _init_memqueue(self):
+
+        # calculate the expanded k_list
+        k = list(self.config.ssl.k)
         k_rep = self.config.ssl.k_rep
         self.k_list = []
         for i in k:
@@ -65,13 +85,19 @@ class LitSegDA(LitBase):
 
         self.memqueue_tgt = self.memqueue_src = None
         if self.ssl:
-            self.memqueue_src = MemQueue()
-            self.proto_src = None
-            if self.config.datamodule.src != self.config.datamodule.tgt:
+            # ssl: memory queue (cpu) on master node
+            if self.global_rank == 0:
+                self.memqueue_src = MemQueue()
+            # ssl: proto on each node
+            self.proto_src = self._create_proto_slot()
+        if self.ssl and self.da:
+            # ssl: memory queue (cpu) on master node
+            if self.global_rank == 0:
                 self.memqueue_tgt = MemQueue()
-                self.proto_tgt = None
+            # ssl: proto on each node
+            self.proto_tgt = self._create_proto_slot()
 
-    def cal_feature_by_superpixel(self, features, labels, superpixels):
+    def _cal_feature_by_superpixel(self, features, labels, superpixels):
         resolution = features.shape[-2:]
 
         # prepare features
@@ -88,14 +114,9 @@ class LitSegDA(LitBase):
         superpixels = superpixels[mask]
         features = features[mask]
 
-        max_superpixel_id = 22000
-        mean_features = torch.zeros((max_superpixel_id, 256), device=self.device)
+        mean_features = torch.zeros((self._max_superpixel_id, self._dim), device=self.device)
 
-        mean_features.scatter_add_(0, superpixels.unsqueeze(1).expand((-1, 256)), features)
-
-        zero_mask = mean_features.norm(dim=-1) < 1e-12
-        mean_features = mean_features[~zero_mask]
-        mean_features = mean_features.detach().cpu().numpy()
+        mean_features.scatter_add_(0, superpixels.unsqueeze(1).expand((-1, self._dim)), features)
 
         return mean_features
 
@@ -107,6 +128,7 @@ class LitSegDA(LitBase):
     # ------------
 
     def training_step(self, batch: Any, batch_idx: int):
+
         # Get src info
         batch_src = batch["src"]
         src_imgs, src_labels, src_idxs = (
@@ -135,17 +157,19 @@ class LitSegDA(LitBase):
         loss = src_loss
         ret = dict(loss=loss)
 
-        # ssl update
-        if self.memqueue_src:
-            src_mean_features = self.cal_feature_by_superpixel(
+        # --- begin:SSL ---
+        # calculate features by superpixel
+        if self.ssl:
+            src_mean_features = self._cal_feature_by_superpixel(
                 src_results["feature"], src_labels, batch_src["superpixel"]
             )
-            self.memqueue_src.push(src_mean_features)
-        if self.memqueue_tgt:
-            tgt_mean_features = self.cal_feature_by_superpixel(
+            ret["src_mean_features"] = src_mean_features
+        if self.ssl and self.da:
+            tgt_mean_features = self._cal_feature_by_superpixel(
                 tgt_results["feature"], tgt_labels, batch_tgt["superpixel"]
             )
-            self.memqueue_tgt.push(tgt_mean_features)
+            ret["tgt_mean_features"] = tgt_mean_features
+        # --- end:SSL ---
 
         # metric
         preds = src_logits.argmax(dim=1)
@@ -156,15 +180,51 @@ class LitSegDA(LitBase):
         return ret
 
     def training_step_end(self, outputs):
-        # ssl
-        if self.memqueue_src.filled:
-            proto_src_np = self.memqueue_src.protos(self.k_list)
-            self.proto_src = list_np_to_torch(proto_src_np)
-        if self.memqueue_tgt.filled:
-            proto_tgt_np = self.memqueue_tgt.protos(self.k_list)
-            self.proto_tgt = list_np_to_torch(proto_tgt_np)
+        k = list(self.config.ssl.k)
+        k_rep = self.config.ssl.k_rep
 
-        return outputs
+        # --- begin:SSL ---
+        # (all node) all_gather mean features
+        if self.ssl:
+            src_mean_features = outputs["src_mean_features"]
+            src_mean_features_list = [
+                torch.zeros_like(src_mean_features) for _ in range(self.trainer.num_gpus)
+            ]
+            dist.all_gather(src_mean_features_list, src_mean_features)
+            src_mean_features_gather = torch.cat(src_mean_features_list)
+        if self.ssl and self.da:
+            tgt_mean_features = outputs["src_mean_features"]
+            tgt_mean_features_list = [
+                torch.zeros_like(tgt_mean_features) for _ in range(self.trainer.num_gpus)
+            ]
+            dist.all_gather(tgt_mean_features_list, tgt_mean_features)
+            tgt_mean_features_gather = torch.cat(tgt_mean_features_list)
+        # (master) update memqueue
+        if self.global_rank == 0:
+            if self.ssl:
+                src_mean_features_to_push = remove_empty_features(src_mean_features_gather)
+                src_mean_features_to_push = src_mean_features_to_push.detach().cpu().numpy()
+                self.memqueue_src.push(src_mean_features_to_push)
+            if self.ssl and self.da:
+                tgt_mean_features_to_push = remove_empty_features(tgt_mean_features_gather)
+                tgt_mean_features_to_push = tgt_mean_features_to_push.detach().cpu().numpy()
+                self.memqueue_src.push(tgt_mean_features_to_push)
+            # (master) compute cluster
+            if self.ssl and self.memqueue_src.filled:
+                proto_src_np = self.memqueue_src.protos(self.k_list)
+                proto_src = list_np_to_torch(proto_src_np)
+                for i, _ in enumerate(k):
+                    self.proto_src[i] = torch.stack(proto_src[i * k_rep :: k_rep])
+            if self.ssl and self.da and self.memqueue_tgt.filled:
+                proto_tgt_np = self.memqueue_tgt.protos(self.k_list)
+                proto_tgt = list_np_to_torch(proto_tgt_np)
+                for i, _ in enumerate(k):
+                    self.proto_tgt[i] = torch.stack(proto_tgt[i * k_rep :: k_rep])
+        # (all node) broadcast
+        dist.broadcast_object_list(self.proto_src, src=0)
+        dist.broadcast_object_list(self.proto_tgt, src=0)
+        # --- end:SSL ---
+        return outputs["loss"]
 
     def training_epoch_end(self, outputs):
         self.log_dict(self.train_src_metrics.compute(), prog_bar=True)

@@ -39,3 +39,4 @@ repos:
     hooks:
       - id: flake8
         exclude: ^(src/modules/sync_batchnorm/|src/modules/backbone/|src/modules/fcn8s.py)
+        args: [--ignore, "E203, F401, F841"]

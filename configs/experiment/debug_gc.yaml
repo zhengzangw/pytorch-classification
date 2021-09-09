@@ -11,5 +11,5 @@ ssl:
   enable: True
   k: [19, 38]
   k_rep: 2
-# trainer:
-#   gpus: 2
+trainer:
+  gpus: 2

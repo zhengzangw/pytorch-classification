@@ -96,6 +96,7 @@ class MemQueue:
         if left < right:
             self.memory_queue[left:right] = features
         else:
+            # log.info(f"[Memqueue] Filled with tail={self.tail}, input length={length}")
             self.filled = True
             mid = self.size - left
             self.memory_queue[left:] = features[:mid]
