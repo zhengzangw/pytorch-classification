@@ -164,24 +164,24 @@ class LitSegDA(LitBase):
         src_results = self.forward(src_imgs)
         src_logits = src_results["out"]
         src_loss = self.criterion(src_logits, src_labels)
-        loss = src_loss
-        ret = dict(cls_loss=src_loss.detach())
 
+        self.log("train/src_cls_loss", src_loss)
+        loss = src_loss
+        ret = dict(loss=loss)
+
+        # --- begin:SSL ---
         # ssl loss
         if self.ssl:
             src_ssl_loss = self._ssl_loss(src_results["feature"], "src")
-            ret["src_ssl_loss"] = src_ssl_loss.detach()
+            self.log("train/src_ssl_loss", src_ssl_loss)
             loss += src_ssl_loss
         if self.ssl and self.da:
             tgt_results = self.forward(tgt_imgs)
 
             tgt_ssl_loss = self._ssl_loss(tgt_results["feature"], "tgt")
-            ret["tgt_ssl_loss"] = tgt_ssl_loss.detach()
+            self.log("train/tgt_ssl_loss", tgt_ssl_loss)
             loss += tgt_ssl_loss
 
-        ret["loss"] = loss
-
-        # --- begin:SSL ---
         # calculate features by superpixel
         if self.ssl:
             src_mean_features = self._cal_feature_by_superpixel(
