@@ -27,16 +27,15 @@ class LitBase(LightningModule):
             config.module, num_classes=config.datamodule.num_classes
         )
 
-        # load from checkpoint
-        if config.get("load_from_checkpoint"):
-            ckpt = torch.load(config.load_from_checkpoint)
-            missing_keys, unexpected_keys = self.load_state_dict(ckpt["state_dict"], strict=False)
-            log.info(f"[ckpt] Missing keys: {missing_keys}, Unexpected keys: {unexpected_keys}.")
-            log.info(f"[ckpt] Load checkpoint from {config.load_from_checkpoint}.")
-
         # loss function
         log.info(f"Instantiating module <{config.loss._target_}>")
         self.criterion = hydra.utils.instantiate(config.loss)
+
+    def load_from_checkpoint(self, checkpoint):
+        log.info(f"[ckpt] Load checkpoint from {checkpoint}.")
+        ckpt = torch.load(checkpoint)
+        missing_keys, unexpected_keys = self.load_state_dict(ckpt["state_dict"], strict=False)
+        log.info(f"[ckpt] Missing keys: {missing_keys}, Unexpected keys: {unexpected_keys}.")
 
     def forward(self, x: torch.Tensor):
         return self.model(x)

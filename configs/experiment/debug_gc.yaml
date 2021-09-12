@@ -3,17 +3,19 @@
 defaults:
   - gta5_cityscapes_cosine
   - override /logger: null
+  # - override /trainer: cpu
 
 datamodule:
   superpixel: True
+  batch_size: 3
 
 ssl:
   enable: True
   k: [19, 38]
-  k_rep: 2
+  k_rep: [2, 1]
 
 # trainer:
 #   gpus: 2
 trainer:
   gpus: 1
-  max_epochs: 0
+  max_epochs: 1
