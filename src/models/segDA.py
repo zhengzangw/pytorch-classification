@@ -25,10 +25,10 @@ def downsample_mask(labels, size=(256, 512)):
     return labels_
 
 
-def list_np_to_torch(np_list):
+def list_np_to_torch(np_list, device=None):
     ret = []
     for np_array in np_list:
-        ret.append(torch.from_numpy(np_array).cuda())
+        ret.append(torch.from_numpy(np_array).to(device))
     return ret
 
 
@@ -36,6 +36,10 @@ def remove_empty_features(features):
     zero_mask = features.norm(dim=-1) < 1e-12
     features = features[~zero_mask]
     return features
+
+
+def rev_domain(domain):
+    return dict(src="tgt", tgt="src")[domain]
 
 
 class LitSegDA(LitBase):
@@ -132,11 +136,35 @@ class LitSegDA(LitBase):
 
         return mean_features
 
+    def _batch_contrast_loss(self, batch_features, batch_anchors, phi=0.05, eps=1e-12):
+        # batch_features: [B x dim]
+        # anchors: [n_group x k x dim]
+        group_logits_T = batch_anchors @ batch_features.T
+        # [n_group x k x B]
+        group_logits_scale_T = group_logits_T / phi
+        group_prob_T = F.softmax(group_logits_scale_T, dim=1)
+        entropy = -torch.sum(group_prob_T * torch.log(group_prob_T + eps), dim=1)
+        loss = torch.mean(entropy)
+        return loss
+
     def _ssl_loss(self, features, domain):
-        if not getattr(self, f"proto_{domain}_ready"):
-            return torch.sum(torch.zeros((1)).cuda())
-        else:
-            return torch.sum(torch.zeros((1)).cuda())
+        loss = torch.sum(torch.zeros((1)).to(self.device))
+        if not self.proto_src_ready or not self.proto_tgt_ready:
+            return loss
+
+        # clean features
+        features = F.normalize(features, dim=1)
+        features = remove_empty_features(features)
+
+        # centroids [k_rep x k x dim]
+        for k_, k_rep_ in zip(self.k, self.k_rep):
+            # in-domain
+            centroids = getattr(self, f"proto_{domain}_{k_}")
+            loss += self._batch_contrast_loss(features, centroids)
+            # cross-domain
+            centroids = getattr(self, f"proto_{rev_domain(domain)}_{k_}")
+            loss += self._batch_contrast_loss(features, centroids)
+        return loss
 
     # ------------
     # train
@@ -165,22 +193,14 @@ class LitSegDA(LitBase):
         src_logits = src_results["out"]
         src_loss = self.criterion(src_logits, src_labels)
 
-        self.log("train/src_cls_loss", src_loss)
+        self.log("train/src_cls_loss", src_loss, prog_bar=True)
         loss = src_loss
-        ret = dict(loss=loss)
+        ret = dict()
 
         # --- begin:SSL ---
-        # ssl loss
-        if self.ssl:
-            src_ssl_loss = self._ssl_loss(src_results["feature"], "src")
-            self.log("train/src_ssl_loss", src_ssl_loss)
-            loss += src_ssl_loss
+        # calculate tgt features
         if self.ssl and self.da:
             tgt_results = self.forward(tgt_imgs)
-
-            tgt_ssl_loss = self._ssl_loss(tgt_results["feature"], "tgt")
-            self.log("train/tgt_ssl_loss", tgt_ssl_loss)
-            loss += tgt_ssl_loss
 
         # calculate features by superpixel
         if self.ssl:
@@ -193,7 +213,19 @@ class LitSegDA(LitBase):
                 tgt_results["feature"], tgt_labels, batch_tgt["superpixel"]
             )
             ret["tgt_mean_features"] = tgt_mean_features
+
+        # calculate loss
+        if self.ssl:
+            src_ssl_loss = self._ssl_loss(src_mean_features, "src")
+            self.log("train/src_ssl_loss", src_ssl_loss, prog_bar=True)
+            loss += src_ssl_loss
+        if self.ssl and self.da:
+            tgt_ssl_loss = self._ssl_loss(tgt_mean_features, "tgt")
+            self.log("train/tgt_ssl_loss", tgt_ssl_loss, prog_bar=True)
+            loss += tgt_ssl_loss
         # --- end:SSL ---
+
+        ret["loss"] = loss
 
         # metric
         preds = src_logits.argmax(dim=1)
@@ -223,7 +255,7 @@ class LitSegDA(LitBase):
                 # (master) compute cluster
                 if memqueue.ready:
                     proto_np = memqueue.protos(self.k_list)
-                    proto = list_np_to_torch(proto_np)
+                    proto = list_np_to_torch(proto_np, device=self.device)
                     acc = 0
                     for k_, k_rep_ in zip(self.k, self.k_rep):
                         update_value = torch.stack(proto[acc : acc + k_rep_])

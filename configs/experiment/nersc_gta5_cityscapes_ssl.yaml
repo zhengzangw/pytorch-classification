@@ -1,0 +1,11 @@
+# @package _global_
+
+defaults:
+  - gta5_cityscapes_ssl
+
+trainer:
+  gpus: 4
+
+datamodule:
+  batch_size: 3
+  num_workers: 4

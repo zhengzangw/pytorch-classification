@@ -116,7 +116,7 @@ class MemQueue:
 
         self.tail = right
 
-    def push(self, features, sample_ratio=1):
+    def push(self, features, sample_ratio=0.1):
         # features [N x dim]
         if sample_ratio < 1:
             size = len(features)

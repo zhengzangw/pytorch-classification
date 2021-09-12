@@ -107,7 +107,6 @@ class Decoder(nn.Module):
             log.info("Detach Backbone.")
         if cosine:
             LastLayerConv2d = CosineConv2d
-            # LastLayerConv2d = ConsineLinear
         else:
             LastLayerConv2d = nn.Conv2d
         self.classifier = LastLayerConv2d(256, num_classes, kernel_size=1, stride=1)

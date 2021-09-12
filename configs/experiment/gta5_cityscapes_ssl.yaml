@@ -1,0 +1,9 @@
+# @package _global_
+
+defaults:
+  - gta5_cityscapes_cosine
+
+ssl:
+  enable: True
+  k: [19, 38]
+  k_rep: [2, 1]

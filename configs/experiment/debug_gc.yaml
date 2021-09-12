@@ -17,5 +17,5 @@ ssl:
 # trainer:
 #   gpus: 2
 trainer:
-  gpus: 1
+  gpus: 2
   max_epochs: 1
