@@ -139,8 +139,11 @@ class MemQueue:
             mask = labels == c
             features_c = features[mask]
             num_c = len(features_c)
-            ratio = sample_ratio * total / num_c / self.num_classes if num_c > 0 else 1
+            # ratio = sample_ratio * total / num_c / self.num_classes if num_c > 0 else 1
+            ratio = sample_ratio
             f = self._sample_native(features_c, sample_ratio=ratio)
+
+            self.class_wise_accumulator[c] += len(f)
             candidate.append(f)
         features = np.concatenate(candidate)
         return features
