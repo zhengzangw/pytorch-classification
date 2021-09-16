@@ -7,7 +7,7 @@ import torch.distributed as dist
 import torch.nn.functional as F
 import torchmetrics
 from omegaconf import DictConfig
-from pytorch_lightning import LightningModule
+from torch_scatter import scatter_max
 
 from ..modules.memqueue import MemQueue
 from ..optimizer.scheduler import create_scheduler
@@ -32,10 +32,14 @@ def list_np_to_torch(np_list, device=None):
     return ret
 
 
-def remove_empty_features(features):
+def remove_empty_features(features, labels=None):
     zero_mask = features.norm(dim=-1) < 1e-12
     features = features[~zero_mask]
-    return features
+    ret = dict(features=features)
+    if labels is not None:
+        labels = labels[~zero_mask]
+        ret["labels"] = labels
+    return ret
 
 
 def rev_domain(domain):
@@ -98,19 +102,29 @@ class LitSegDA(LitBase):
         if self.ssl:
             # ssl: memory queue (cpu) on master node
             if self.global_rank == 0:
-                self.memqueue_src = MemQueue(name="src", size=self.config.ssl.queue_size)
+                self.memqueue_src = MemQueue(
+                    name="src",
+                    size=self.config.ssl.queue_size,
+                    num_classes=self.config.datamodule.num_classes,
+                )
             # ssl: proto on each node
             self._create_proto_slot("src")
             self.proto_src_ready = False
         if self.ssl and self.da:
             # ssl: memory queue (cpu) on master node
             if self.global_rank == 0:
-                self.memqueue_tgt = MemQueue(name="tgt", size=self.config.ssl.queue_size)
+                self.memqueue_tgt = MemQueue(
+                    name="tgt",
+                    size=self.config.ssl.queue_size,
+                    num_classes=self.config.datamodule.num_classes,
+                )
             # ssl: proto on each node
             self._create_proto_slot("tgt")
             self.proto_tgt_ready = False
 
-    def _cal_feature_by_superpixel(self, features, labels, superpixels):
+    def _cal_feature_by_superpixel(
+        self, features, superpixels, labels=None, remove_ignore_index=True
+    ):
         resolution = features.shape[-2:]
 
         # prepare features
@@ -118,14 +132,16 @@ class LitSegDA(LitBase):
         features = einops.rearrange(features, "b c h w -> (b h w) c")
 
         # downsample label and superpixel
-        labels = downsample_mask(labels, size=resolution)
         superpixels = downsample_mask(superpixels, size=resolution)
+        if labels is not None:
+            labels = downsample_mask(labels, size=resolution)
 
         # remove ignore_index
-        mask = labels != self.config.datamodule.ignore_index
-        labels = labels[mask]
-        superpixels = superpixels[mask]
-        features = features[mask]
+        if remove_ignore_index:
+            mask = labels != self.config.datamodule.ignore_index
+            labels = labels[mask]
+            superpixels = superpixels[mask]
+            features = features[mask]
 
         # mean according to superpixel
         mean_features = torch.zeros((self._max_superpixel_id, self._dim), device=self.device)
@@ -154,7 +170,7 @@ class LitSegDA(LitBase):
 
         # clean features
         features = F.normalize(features, dim=1)
-        features = remove_empty_features(features)
+        features = remove_empty_features(features)["features"]
 
         # centroids [k_rep x k x dim]
         for k_, k_rep_ in zip(self.k, self.k_rep):
@@ -166,6 +182,10 @@ class LitSegDA(LitBase):
             loss += self._batch_contrast_loss(features, centroids)
         return loss
 
+    def _classify(self, features):
+        weight = self.model.decoder.classifier.weight.data.detach().flatten(start_dim=1).T
+        return (features @ weight).argmax(dim=-1)
+
     # ------------
     # train
     # ------------
@@ -176,27 +196,22 @@ class LitSegDA(LitBase):
 
         # Get src info
         batch_src = batch["src"]
-        src_imgs, src_labels, src_idxs = (
+        src_imgs, src_labels = (
             batch_src["image"],
             batch_src["label"],
-            batch_src["index"],
         )
 
         # Get tgt info
         if "tgt" in batch:
             batch_tgt = batch["tgt"]
-            tgt_imgs, tgt_labels, tgt_idxs = (
-                batch_tgt["image"],
-                batch_tgt["label"],
-                batch_tgt["index"],
-            )
+            tgt_imgs = batch_tgt["image"]
 
         # loss
         src_results = self.forward(src_imgs)
         src_logits = src_results["out"]
         src_loss = self.criterion(src_logits, src_labels)
 
-        self.log("train/src_cls_loss", src_loss, prog_bar=True)
+        self.log("train/src_cls", src_loss, prog_bar=True)
         loss += src_loss
 
         # --- begin:SSL ---
@@ -207,23 +222,29 @@ class LitSegDA(LitBase):
         # calculate features by superpixel
         if self.ssl:
             src_mean_features = self._cal_feature_by_superpixel(
-                src_results["feature"], src_labels, batch_src["superpixel"]
+                src_results["feature"], batch_src["superpixel"], labels=src_labels
             )
             ret["src_mean_features"] = src_mean_features
+            if self.config.ssl.classwise_sample:
+                ret["src_mean_labels"] = self._classify(src_mean_features)
         if self.ssl and self.da:
             tgt_mean_features = self._cal_feature_by_superpixel(
-                tgt_results["feature"], tgt_labels, batch_tgt["superpixel"]
+                tgt_results["feature"],
+                batch_tgt["superpixel"],
+                remove_ignore_index=False,
             )
             ret["tgt_mean_features"] = tgt_mean_features
+            if self.config.ssl.classwise_sample:
+                ret["tgt_mean_labels"] = self._classify(tgt_mean_features)
 
         # calculate loss
         if self.ssl:
             src_ssl_loss = self._ssl_loss(src_mean_features, "src")
-            self.log("train/src_ssl_loss", src_ssl_loss, prog_bar=True)
+            self.log("train/src_ssl", src_ssl_loss, prog_bar=True)
             loss += src_ssl_loss
         if self.ssl and self.da:
             tgt_ssl_loss = self._ssl_loss(tgt_mean_features, "tgt")
-            self.log("train/tgt_ssl_loss", tgt_ssl_loss, prog_bar=True)
+            self.log("train/tgt_ssl", tgt_ssl_loss, prog_bar=True)
             loss += tgt_ssl_loss
         # --- end:SSL ---
 
@@ -246,12 +267,34 @@ class LitSegDA(LitBase):
             ]
             dist.all_gather(mean_features_list, mean_features)
             mean_features_gather = torch.cat(mean_features_list)
+
+            # (all node) all_gather mean labels
+            if self.config.ssl.classwise_sample:
+                mean_labels = outputs.pop(domain + "_mean_labels")
+                mean_labels_list = [
+                    torch.zeros_like(mean_labels) for _ in range(self.trainer.num_gpus)
+                ]
+                dist.all_gather(mean_labels_list, mean_labels)
+                mean_labels_gather = torch.cat(mean_labels_list)
+            else:
+                mean_labels_gather = None
+
             # (master) update memqueue
             if self.global_rank == 0:
                 memqueue = getattr(self, "memqueue_" + domain)
-                mean_features_to_push = remove_empty_features(mean_features_gather)
-                mean_features_to_push = mean_features_to_push.detach().cpu().numpy()
-                memqueue.push(mean_features_to_push, sample_ratio=self.config.ssl.sample_ratio)
+                ret = remove_empty_features(mean_features_gather, labels=mean_labels_gather)
+                mean_features_to_push = ret["features"].detach().cpu().numpy()
+                if self.config.ssl.classwise_sample:
+                    mean_labels_to_push = ret["labels"].detach().cpu().numpy()
+                else:
+                    mean_labels_to_push = None
+                memqueue.push(
+                    mean_features_to_push,
+                    sample_ratio=self.config.ssl.sample_ratio,
+                    labels=mean_labels_to_push,
+                    classwise_sample=self.config.ssl.classwise_sample,
+                )
+
                 # (master) compute cluster
                 if memqueue.ready:
                     proto_np = memqueue.protos(self.k_list)

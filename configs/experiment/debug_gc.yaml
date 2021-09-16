@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - gta5_cityscapes_cosine
+  - gta5_cityscapes_ssl
   - override /logger: null
   # - override /trainer: cpu
 
@@ -9,15 +9,13 @@ datamodule:
   superpixel: True
   batch_size: 3
 
-ssl:
-  enable: True
-  k: [19, 38]
-  k_rep: [2, 1]
-
 load_from_checkpoint: "/global/cfs/cdirs/m3691/zangwei/pytorch-classification/logs/runs/2021-09-12/08-46-31/checkpoints/epoch79-val_IoU0.42.ckpt"
+
+ssl:
+  classwise_sample: True
 
 # trainer:
 #   gpus: 2
 trainer:
-  gpus: 1
+  gpus: 2
   max_epochs: 1

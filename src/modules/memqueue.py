@@ -87,7 +87,7 @@ class MemQueue:
     # gta5: 24967 x 21749
     # 2679 sp for one image
 
-    def __init__(self, size=2500 * 500, dim=256, name=""):
+    def __init__(self, size=2500 * 500, dim=256, name="", num_classes=None):
         super().__init__()
 
         self.size = size
@@ -96,6 +96,9 @@ class MemQueue:
         self.filled = False
         self.ready = False
         self.name = name
+        self.num_classes = num_classes
+        if self.num_classes is not None:
+            self.class_wise_accumulator = np.zeros(num_classes)
 
         self.memory_queue = np.zeros((size, dim), dtype=np.float32)
 
@@ -116,20 +119,49 @@ class MemQueue:
 
         self.tail = right
 
-    def push(self, features, sample_ratio=0.1):
-        # features [N x dim]
+    def _log_classwise_accumulator(self):
+        total = np.sum(self.class_wise_accumulator)
+        log.info(f"Total {total}: {self.class_wise_accumulator}")
+        self.class_wise_accumulator = np.zeros(self.num_classes)
+
+    def _sample_native(self, features, sample_ratio):
         if sample_ratio < 1:
             size = len(features)
-            sample_num = int(size * sample_ratio)
+            sample_num = int(size * sample_ratio + 0.5)
             mask = np.random.choice(size, sample_num, replace=False)
             features = features[mask]
+        return features
+
+    def _sample_classwise(self, features, labels, sample_ratio):
+        candidate = []
+        total = len(features)
+        for c in range(self.num_classes):
+            mask = labels == c
+            features_c = features[mask]
+            num_c = len(features_c)
+            ratio = sample_ratio * total / num_c / self.num_classes if num_c > 0 else 1
+            f = self._sample_native(features_c, sample_ratio=ratio)
+            candidate.append(f)
+        features = np.concatenate(candidate)
+        return features
+
+    def push(self, features, labels=None, sample_ratio=0.1, classwise_sample=False):
+        # features [N x dim]
+        if not classwise_sample:
+            features = self._sample_native(features, sample_ratio=sample_ratio)
+        else:
+            features = self._sample_classwise(features, labels, sample_ratio=sample_ratio)
         self._push(features)
 
     def protos(self, k_list, **kwargs):
         km = Kmeans(k_list, self.memory_queue, name=self.name, **kwargs)
         ret = km.compute()
+
         # after compute the cluster, waiting for new features
         self.ready = False
+        if self.num_classes is not None:
+            self._log_classwise_accumulator()
+
         return ret["centroid"]
 
     def __len__(self):

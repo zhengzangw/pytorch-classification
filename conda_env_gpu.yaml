@@ -3,6 +3,7 @@ name: pytorch_dl
 channels:
   - pytorch
   - conda-forge
+  - pyg
 
 dependencies:
   - python=3.8
@@ -10,5 +11,6 @@ dependencies:
   - cudatoolkit
   - pytorch=1.8.1
   - torchvision=0.9.1
+  - pytorch-scatter
   - pip:
       - -r requirements.txt
