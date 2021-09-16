@@ -14,8 +14,10 @@ ssl:
   k: [19, 38]
   k_rep: [2, 1]
 
+load_from_checkpoint: "/global/cfs/cdirs/m3691/zangwei/pytorch-classification/logs/runs/2021-09-12/08-46-31/checkpoints/epoch79-val_IoU0.42.ckpt"
+
 # trainer:
 #   gpus: 2
 trainer:
-  gpus: 2
+  gpus: 1
   max_epochs: 1

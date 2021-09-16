@@ -1,0 +1,9 @@
+# @package _global_
+
+defaults:
+  - nersc_gta5_cityscapes_cosine
+
+load_from_checkpoint: "/global/cfs/cdirs/m3691/zangwei/pytorch-classification/logs/runs/2021-09-12/08-46-31/checkpoints/epoch79-val_IoU0.42.ckpt"
+
+trainer:
+  max_epochs: 5

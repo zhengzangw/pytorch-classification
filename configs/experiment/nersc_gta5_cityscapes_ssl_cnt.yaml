@@ -1,0 +1,25 @@
+# @package _global_
+
+defaults:
+  - nersc_gta5_cityscapes_ssl
+  # - override /scheduler: none
+
+load_from_checkpoint: "/global/cfs/cdirs/m3691/zangwei/pytorch-classification/logs/runs/2021-09-12/08-46-31/checkpoints/epoch79-val_IoU0.42.ckpt"
+
+trainer:
+  gpus: 8
+  max_epochs: 20
+
+ssl:
+  k: [19, 38]
+  k_rep: [2, 2]
+  sample_ratio: 0.1
+  queue_size: 1250000 # 2500 * 500
+  phi: 0.05
+
+optimizer:
+  lr: 2.5e-4
+
+scheduler:
+  warmup:
+    times: 4000

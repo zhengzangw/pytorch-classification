@@ -3,7 +3,13 @@
 defaults:
   - gta5_cityscapes_cosine
 
+datamodule:
+  superpixel: True
+
 ssl:
   enable: True
   k: [19, 38]
   k_rep: [2, 1]
+  sample_ratio: 0.1
+  queue_size: 1250000 # 2500 * 500
+  phi: 0.05

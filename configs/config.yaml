@@ -27,7 +27,6 @@ find_unused_parameters: False
 
 # test
 test: False
-load_from_checkpoint: null
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the current log directory,

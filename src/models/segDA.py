@@ -67,7 +67,7 @@ class LitSegDA(LitBase):
         # --- end:SSL ---
 
         # load from checkpoint
-        if self.config.load_from_checkpoint:
+        if "load_from_checkpoint" in self.config and self.config.load_from_checkpoint:
             self.load_from_checkpoint(checkpoint=self.config.load_from_checkpoint)
             if self.ssl:
                 self._update_proto_ready("src")
@@ -98,14 +98,14 @@ class LitSegDA(LitBase):
         if self.ssl:
             # ssl: memory queue (cpu) on master node
             if self.global_rank == 0:
-                self.memqueue_src = MemQueue(name="src")
+                self.memqueue_src = MemQueue(name="src", size=self.config.ssl.queue_size)
             # ssl: proto on each node
             self._create_proto_slot("src")
             self.proto_src_ready = False
         if self.ssl and self.da:
             # ssl: memory queue (cpu) on master node
             if self.global_rank == 0:
-                self.memqueue_tgt = MemQueue(name="tgt")
+                self.memqueue_tgt = MemQueue(name="tgt", size=self.config.ssl.queue_size)
             # ssl: proto on each node
             self._create_proto_slot("tgt")
             self.proto_tgt_ready = False
@@ -148,7 +148,7 @@ class LitSegDA(LitBase):
         return loss
 
     def _ssl_loss(self, features, domain):
-        loss = torch.sum(torch.zeros((1)).to(self.device))
+        loss = torch.zeros(()).to(self.device)
         if not self.proto_src_ready or not self.proto_tgt_ready:
             return loss
 
@@ -160,7 +160,7 @@ class LitSegDA(LitBase):
         for k_, k_rep_ in zip(self.k, self.k_rep):
             # in-domain
             centroids = getattr(self, f"proto_{domain}_{k_}")
-            loss += self._batch_contrast_loss(features, centroids)
+            loss += self._batch_contrast_loss(features, centroids, phi=self.config.ssl.phi)
             # cross-domain
             centroids = getattr(self, f"proto_{rev_domain(domain)}_{k_}")
             loss += self._batch_contrast_loss(features, centroids)
@@ -171,6 +171,9 @@ class LitSegDA(LitBase):
     # ------------
 
     def training_step(self, batch: Any, batch_idx: int):
+        loss = torch.zeros(()).to(self.device)
+        ret = dict(loss=loss)
+
         # Get src info
         batch_src = batch["src"]
         src_imgs, src_labels, src_idxs = (
@@ -194,8 +197,7 @@ class LitSegDA(LitBase):
         src_loss = self.criterion(src_logits, src_labels)
 
         self.log("train/src_cls_loss", src_loss, prog_bar=True)
-        loss = src_loss
-        ret = dict()
+        loss += src_loss
 
         # --- begin:SSL ---
         # calculate tgt features
@@ -225,8 +227,6 @@ class LitSegDA(LitBase):
             loss += tgt_ssl_loss
         # --- end:SSL ---
 
-        ret["loss"] = loss
-
         # metric
         preds = src_logits.argmax(dim=1)
         preds, labels = strip_ignore_index(preds, src_labels, self.config.datamodule.ignore_index)
@@ -251,7 +251,7 @@ class LitSegDA(LitBase):
                 memqueue = getattr(self, "memqueue_" + domain)
                 mean_features_to_push = remove_empty_features(mean_features_gather)
                 mean_features_to_push = mean_features_to_push.detach().cpu().numpy()
-                memqueue.push(mean_features_to_push)
+                memqueue.push(mean_features_to_push, sample_ratio=self.config.ssl.sample_ratio)
                 # (master) compute cluster
                 if memqueue.ready:
                     proto_np = memqueue.protos(self.k_list)
