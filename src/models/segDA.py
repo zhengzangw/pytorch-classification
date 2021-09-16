@@ -89,6 +89,14 @@ class LitSegDA(LitBase):
         updated = torch.norm(getattr(self, f"proto_{domain}_{self.k[0]}")) > 1e-12
         setattr(self, f"proto_{domain}_ready", updated)
 
+    def _proto_slot_as_numpy_list(self, domain):
+        np_list = []
+        for k_, k_rep_ in zip(self.k, self.k_rep):
+            proto = getattr(self, f"proto_{domain}_{k_}")
+            proto = proto.detach().cpu().numpy()
+            np_list += list(proto)
+        return np_list
+
     def _init_memqueue(self):
 
         # calculate the expanded k_list
@@ -297,7 +305,12 @@ class LitSegDA(LitBase):
 
                 # (master) compute cluster
                 if memqueue.ready:
-                    proto_np = memqueue.protos(self.k_list)
+                    ready = getattr(self, f"proto_{domain}_ready")
+                    if self.config.ssl.continual_clustering and ready:
+                        init_centroid = self._proto_slot_as_numpy_list(domain)
+                    else:
+                        init_centroid = None
+                    proto_np = memqueue.protos(self.k_list, init_centroids=init_centroid)
                     proto = list_np_to_torch(proto_np, device=self.device)
                     acc = 0
                     for k_, k_rep_ in zip(self.k, self.k_rep):

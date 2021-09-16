@@ -11,10 +11,13 @@ trainer:
   max_epochs: 20
 
 ssl:
-  k: [19, 38]
-  k_rep: [2, 2]
-  sample_ratio: 0.1
+  classwise_sample: True
+  continual_clustering: True
+  sample_ratio: 0.05
   queue_size: 1250000 # 2500 * 500
+
+  k: [19, 38]
+  k_rep: [6, 4]
   phi: 0.05
 
 optimizer:

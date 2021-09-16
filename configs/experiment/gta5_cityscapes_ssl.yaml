@@ -10,6 +10,7 @@ ssl:
   enable: True
   queue_size: 1250000 # 2500 * 500
   classwise_sample: False
+  continual_clustering: False
   sample_ratio: 0.1
 
   k: [19, 38]

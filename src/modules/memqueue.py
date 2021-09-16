@@ -65,7 +65,8 @@ class Kmeans(object):
                 frozen_centroids=self.frozen_centroids,
             )
 
-            kmeans.train(data, init_centroids=self.init_centroids)
+            init_centroid = self.init_centroids[k_idx] if self.init_centroids is not None else None
+            kmeans.train(data, init_centroids=init_centroid)
 
             if ret_label:
                 _, clus_label = kmeans.index.search(data, 1)
@@ -99,6 +100,7 @@ class MemQueue:
         self.num_classes = num_classes
         if self.num_classes is not None:
             self.class_wise_accumulator = np.zeros(num_classes)
+            self.class_wise_results = np.zeros(num_classes)
 
         self.memory_queue = np.zeros((size, dim), dtype=np.float32)
 
@@ -120,9 +122,9 @@ class MemQueue:
         self.tail = right
 
     def _log_classwise_accumulator(self):
-        total = np.sum(self.class_wise_accumulator)
-        log.info(f"Total {total}: {self.class_wise_accumulator}")
-        self.class_wise_accumulator = np.zeros(self.num_classes)
+        total = np.sum(self.class_wise_results)
+        log.info(f"Total {total}: {self.class_wise_results}")
+        self.class_wise_results = np.zeros(self.num_classes)
 
     def _sample_native(self, features, sample_ratio):
         if sample_ratio < 1:
@@ -134,16 +136,20 @@ class MemQueue:
 
     def _sample_classwise(self, features, labels, sample_ratio):
         candidate = []
-        total = len(features)
+        for c in range(self.num_classes):
+            self.class_wise_accumulator[c] += (labels == c).sum()
+        total = np.sum(self.class_wise_accumulator)
+
         for c in range(self.num_classes):
             mask = labels == c
             features_c = features[mask]
-            num_c = len(features_c)
-            # ratio = sample_ratio * total / num_c / self.num_classes if num_c > 0 else 1
-            ratio = sample_ratio
+            ratio = (
+                sample_ratio * total / self.class_wise_accumulator[c] / self.num_classes
+                if self.class_wise_accumulator[c] > 0
+                else 1
+            )
             f = self._sample_native(features_c, sample_ratio=ratio)
-
-            self.class_wise_accumulator[c] += len(f)
+            self.class_wise_results[c] += len(f)
             candidate.append(f)
         features = np.concatenate(candidate)
         return features

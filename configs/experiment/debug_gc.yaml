@@ -6,13 +6,14 @@ defaults:
   # - override /trainer: cpu
 
 datamodule:
-  superpixel: True
   batch_size: 3
 
 load_from_checkpoint: "/global/cfs/cdirs/m3691/zangwei/pytorch-classification/logs/runs/2021-09-12/08-46-31/checkpoints/epoch79-val_IoU0.42.ckpt"
 
 ssl:
-  classwise_sample: True
+  sample_ratio: 1 # 0.1
+  classwise_sample: False
+  continual_clustering: True
 
 # trainer:
 #   gpus: 2
