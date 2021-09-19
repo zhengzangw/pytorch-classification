@@ -10,13 +10,19 @@ datamodule:
 
 load_from_checkpoint: "/global/cfs/cdirs/m3691/zangwei/pytorch-classification/logs/runs/2021-09-12/08-46-31/checkpoints/epoch79-val_IoU0.42.ckpt"
 
+loss_scale:
+  src_cls: 0.1
+  src_ssl: 2.0
+  tgt_ssl: 2.0
+
 ssl:
-  sample_ratio: 1 # 0.1
+  sample_ratio: 1
+  proto_freq: 0.5
   classwise_sample: False
-  continual_clustering: True
+  continual_clustering: False
 
 # trainer:
 #   gpus: 2
 trainer:
-  gpus: 2
+  gpus: 1
   max_epochs: 1

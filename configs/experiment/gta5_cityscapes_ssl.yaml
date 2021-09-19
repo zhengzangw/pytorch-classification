@@ -12,6 +12,7 @@ ssl:
   classwise_sample: False
   continual_clustering: False
   sample_ratio: 0.1
+  unready_update: False
 
   k: [19, 38]
   k_rep: [2, 1]

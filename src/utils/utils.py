@@ -147,6 +147,7 @@ def log_hyperparameters(
     trainer: pl.Trainer,
     callbacks: List[pl.Callback],
     logger: List[pl.loggers.LightningLoggerBase],
+    save_all: bool = True,
 ) -> None:
     """This method controls which parameters from Hydra config are saved by Lightning loggers.
 
@@ -157,15 +158,19 @@ def log_hyperparameters(
     hparams = {}
 
     # choose which parts of hydra config will be saved to loggers
-    hparams["trainer"] = config["trainer"]
-    hparams["model"] = config["model"]
-    hparams["datamodule"] = config["datamodule"]
-    hparams["module"] = config["module"]
-    hparams["loss"] = config["loss"]
-    hparams["optimizer"] = config["optimizer"]
-    hparams["scheduler"] = config["scheduler"]
-    if "callbacks" in config:
-        hparams["callbacks"] = config["callbacks"]
+    if save_all:
+        for k, v in config.items():
+            hparams[k] = v
+    else:
+        hparams["trainer"] = config["trainer"]
+        hparams["model"] = config["model"]
+        hparams["datamodule"] = config["datamodule"]
+        hparams["module"] = config["module"]
+        hparams["loss"] = config["loss"]
+        hparams["optimizer"] = config["optimizer"]
+        hparams["scheduler"] = config["scheduler"]
+        if "callbacks" in config:
+            hparams["callbacks"] = config["callbacks"]
 
     # save number of model parameters
     hparams["model/params_total"] = sum(p.numel() for p in model.parameters())

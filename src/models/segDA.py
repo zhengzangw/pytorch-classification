@@ -7,7 +7,6 @@ import torch.distributed as dist
 import torch.nn.functional as F
 import torchmetrics
 from omegaconf import DictConfig
-from torch_scatter import scatter_max
 
 from ..modules.memqueue import MemQueue
 from ..optimizer.scheduler import create_scheduler
@@ -47,8 +46,13 @@ def rev_domain(domain):
 
 
 class LitSegDA(LitBase):
+    loss_scale = dict(src_cls=1.0, src_ssl=1.0, tgt_ssl=1.0)
+
     def __init__(self, cfg: Optional[DictConfig]):
         super().__init__(cfg=cfg)
+
+        self.automatic_optimization = False
+        self._define_loss_scale()
 
         # metric
         metrics = torchmetrics.MetricCollection(
@@ -76,6 +80,12 @@ class LitSegDA(LitBase):
             if self.ssl:
                 self._update_proto_ready("src")
                 self._update_proto_ready("tgt")
+
+    def _define_loss_scale(self):
+        if "loss_scale" in self.config:
+            for k, v in self.config.loss_scale.items():
+                self.loss_scale[k] = v
+        return self.loss_scale
 
     # ------------
     # ssl
@@ -114,6 +124,7 @@ class LitSegDA(LitBase):
                     name="src",
                     size=self.config.ssl.queue_size,
                     num_classes=self.config.datamodule.num_classes,
+                    proto_freq=self.config.ssl.proto_freq,
                 )
             # ssl: proto on each node
             self._create_proto_slot("src")
@@ -125,6 +136,7 @@ class LitSegDA(LitBase):
                     name="tgt",
                     size=self.config.ssl.queue_size,
                     num_classes=self.config.datamodule.num_classes,
+                    proto_freq=self.config.ssl.proto_freq,
                 )
             # ssl: proto on each node
             self._create_proto_slot("tgt")
@@ -220,7 +232,7 @@ class LitSegDA(LitBase):
         src_loss = self.criterion(src_logits, src_labels)
 
         self.log("train/src_cls", src_loss, prog_bar=True)
-        loss += src_loss
+        loss += src_loss * self.loss_scale["src_cls"]
 
         # --- begin:SSL ---
         # calculate tgt features
@@ -249,11 +261,11 @@ class LitSegDA(LitBase):
         if self.ssl:
             src_ssl_loss = self._ssl_loss(src_mean_features, "src")
             self.log("train/src_ssl", src_ssl_loss, prog_bar=True)
-            loss += src_ssl_loss
+            loss += src_ssl_loss * self.loss_scale["src_ssl"]
         if self.ssl and self.da:
             tgt_ssl_loss = self._ssl_loss(tgt_mean_features, "tgt")
             self.log("train/tgt_ssl", tgt_ssl_loss, prog_bar=True)
-            loss += tgt_ssl_loss
+            loss += tgt_ssl_loss * self.loss_scale["tgt_ssl"]
         # --- end:SSL ---
 
         # metric
@@ -261,6 +273,14 @@ class LitSegDA(LitBase):
         preds, labels = strip_ignore_index(preds, src_labels, self.config.datamodule.ignore_index)
         self.train_src_metrics(preds, labels)
         self.log("train/loss", loss)
+
+        # optimize
+        if (
+            not self.ssl
+            or self.config.ssl.unready_update
+            or (self.proto_src_ready and self.proto_tgt_ready)
+        ):
+            self.optimize(loss)
 
         return ret
 
@@ -383,6 +403,16 @@ class LitSegDA(LitBase):
     def test_epoch_end(self, outputs):
         self.log_dict(self.test_metrics.compute(), prog_bar=True)
         self.test_metrics.reset()
+
+    # ------------
+    # optimizer
+    # ------------
+
+    def optimize(self, loss):
+        opt = self.optimizers()
+        opt.zero_grad()
+        self.manual_backward(loss)
+        opt.step()
 
     def configure_optimizers(self):
 

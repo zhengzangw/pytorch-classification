@@ -10,6 +10,11 @@ trainer:
   gpus: 4
   max_epochs: 40
 
+loss_scale:
+  src_cls: 0.1
+  src_ssl: 1.0
+  tgt_ssl: 1.0
+
 ssl:
   classwise_sample: True
   continual_clustering: False

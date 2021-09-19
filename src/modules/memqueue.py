@@ -88,15 +88,18 @@ class MemQueue:
     # gta5: 24967 x 21749
     # 2679 sp for one image
 
-    def __init__(self, size=2500 * 500, dim=256, name="", num_classes=None):
+    def __init__(self, size=2500 * 500, dim=256, name="", num_classes=None, proto_freq=1.0):
         super().__init__()
 
         self.size = size
         self.dim = dim
         self.tail = 0
         self.filled = False
-        self.ready = False
         self.name = name
+
+        self.proto_freq = proto_freq
+        self.accu = 0
+
         self.num_classes = num_classes
         if self.num_classes is not None:
             self.class_wise_accumulator = np.zeros(num_classes)
@@ -104,9 +107,15 @@ class MemQueue:
 
         self.memory_queue = np.zeros((size, dim), dtype=np.float32)
 
+    @property
+    def ready(self):
+        return self.filled and self.accu >= self.size * self.proto_freq
+
     def _push(self, features):
         length = len(features)
         assert length < self.size
+        self.accu += length
+
         left = self.tail
         right = (left + length) % self.size
         if left < right:
@@ -114,7 +123,6 @@ class MemQueue:
         else:
             # log.info(f"[Memqueue] Filled with tail={self.tail}, input length={length}")
             self.filled = True
-            self.ready = True
             mid = self.size - left
             self.memory_queue[left:] = features[:mid]
             self.memory_queue[:right] = features[mid:]
@@ -123,8 +131,7 @@ class MemQueue:
 
     def _log_classwise_accumulator(self):
         total = np.sum(self.class_wise_results)
-        log.info(f"Total {total}: {self.class_wise_results}")
-        self.class_wise_results = np.zeros(self.num_classes)
+        log.info(f"[{self.name}] Total {total}: {self.class_wise_results}")
 
     def _sample_native(self, features, sample_ratio):
         if sample_ratio < 1:
@@ -167,9 +174,10 @@ class MemQueue:
         ret = km.compute()
 
         # after compute the cluster, waiting for new features
-        self.ready = False
         if self.num_classes is not None:
             self._log_classwise_accumulator()
+        self.accu = 0
+        self.class_wise_results = np.zeros(self.num_classes)
 
         return ret["centroid"]
 
